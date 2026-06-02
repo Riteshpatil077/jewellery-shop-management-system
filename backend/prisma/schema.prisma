@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id             Int      @id @default(autoincrement())
+  name           String   // उत्पादनाचे नाव
+  category       String   // श्रेणी
+  weight         Float    // वजन
+  metalType      String   // धातू प्रकार (Gold/Silver/Diamond)
+  ratePerGram    Float    // प्रतिग्राम दर
+  makingCharges  Float    @default(0) // कारागीर खर्च
+  totalPrice     Float    // एकूण किंमत
+  images         String[] @default([]) // उत्पादन फोटो
+  stockCount     Int      @default(1) // स्टॉक उपलब्धता
+  isAvailable    Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  transactions   Transaction[]
+}
+
+model Customer {
+  id            Int          @id @default(autoincrement())
+  name          String
+  mobile        String       @unique
+  address       String?
+  aadhaar       String?
+  email         String?
+  totalBusiness Float        @default(0)
+  loans         Loan[]
+  collections   Collection[]
+  transactions  Transaction[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Loan {
+  id              Int      @id @default(autoincrement())
+  customerName    String
+  mobileNumber    String
+  address         String?
+  aadhaarCard     String?
+  collateralItem  String   // गहाण वस्तू
+  collateralImage String?  // गहाण वस्तूचा फोटो
+  weight          Float?
+  purity          String?  // शुद्धता
+  loanAmount      Float
+  interestRate    Float
+  durationMonths  Int
+  loanDate        DateTime @default(now())
+  repaymentDate   DateTime
+  totalInterest   Float    @default(0)
+  interestPaid    Float    @default(0)
+  amountPaid      Float    @default(0) // Principal paid
+  status          String   @default("Active") // Active, Closed, Defaulted
+  customerId      Int?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Collection {
+  id                Int      @id @default(autoincrement())
+  customerName      String
+  purchasedJewelry  String
+  totalAmount       Float
+  advancePayment    Float    @default(0)
+  balanceAmount     Float
+  totalInstallments Int
+  monthlyAmount     Float
+  paidInstallments  Int      @default(0)
+  nextDueDate       DateTime?
+  status            String   @default("Pending") // Pending, Completed
+  customerId        Int?
+  customer          Customer? @relation(fields: [customerId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Transaction {
+  id              Int      @id @default(autoincrement())
+  type            String   // "Sell" (विक्री), "Purchase" (खरेदी), "Order" (नवीन ऑर्डर)
+  customerName    String   // For Sell/Order: customer name; For Purchase: kept as-is
+  supplierName    String?  // For Purchase: wholesaler/supplier shop name
+  mobile          String?
+  itemName        String
+  metalType       String   // "Gold", "Silver", "Diamond"
+  weight          Float
+  rate            Float
+  makingCharges   Float    @default(0)
+  totalAmount     Float
+  advancePaid     Float    @default(0) // useful for Orders
+  balanceAmount   Float    @default(0)
+  status          String   @default("Completed") // "Completed", "Pending", "In Progress"
+  date            DateTime @default(now())
+  dueDate         DateTime? // Date to deliver order
+  notes           String?
+  exchangeItemName String? // Exchange feature (Old gold/silver)
+  exchangeWeight   Float?
+  exchangePurity   Float?   // Purity percentage / Fine (टच/टाच)
+  exchangeFineWeight Float? // Calculated Fine Weight (फाईन वजन)
+  exchangeRate     Float?
+  exchangeValue    Float    @default(0)
+  purchaseRate     Float?   // Item purchase rate for profit comparison (खरेदी दर)
+  productId        Int?     // Link to specific product in inventory
+  product          Product? @relation(fields: [productId], references: [id])
+  customerId      Int?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
