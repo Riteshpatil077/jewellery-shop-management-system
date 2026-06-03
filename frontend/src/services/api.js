@@ -1,7 +1,14 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL ||
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? `http://${window.location.hostname}:5000/api`
-        : 'https://jewellery-shop-management-system.onrender.com/api');
+let envUrl = import.meta.env.VITE_API_URL || '';
+if (!envUrl && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    envUrl = `http://${window.location.hostname}:5000/api`;
+} else if (!envUrl) {
+    envUrl = 'https://jewellery-shop-management-system.onrender.com/api';
+}
+
+// Ensure the URL ends with /api and has no trailing slash
+const API_BASE_URL = envUrl.replace(/\/$/, '').endsWith('/api') ? envUrl.replace(/\/$/, '') : `${envUrl.replace(/\/$/, '')}/api`;
+
+console.log('📡 API Base URL:', API_BASE_URL);
 
 export const apiService = {
     // Products
