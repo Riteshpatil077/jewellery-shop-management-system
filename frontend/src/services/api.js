@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = `http://${window.location.hostname}:5000/api`;
 
 export const apiService = {
     // Products
@@ -38,6 +38,13 @@ export const apiService = {
             body: JSON.stringify(data)
         }).then(res => res.json());
     },
+    updateLoanDate: (id, date) => {
+        return fetch(`${API_BASE_URL}/loans/${id}/date`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ repaymentDate: date })
+        }).then(res => res.json());
+    },
 
     // Collections
     getCollections: (params = {}) => {
@@ -56,6 +63,13 @@ export const apiService = {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
+        }).then(res => res.json());
+    },
+    updateCollectionDate: (id, date) => {
+        return fetch(`${API_BASE_URL}/collections/${id}/date`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nextDueDate: date })
         }).then(res => res.json());
     },
 

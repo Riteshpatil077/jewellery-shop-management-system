@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, FileText, Loader2, IndianRupee, Printer, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Search, Filter, FileText, Loader2, IndianRupee, Printer, X, Image as ImageIcon, Edit3 } from 'lucide-react';
 import { apiService } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 export default function Loans() {
+    const toast = useToast();
     const [showAddForm, setShowAddForm] = useState(false);
     const [loans, setLoans] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -62,6 +64,7 @@ export default function Loans() {
             await apiService.addLoan(formData);
             setShowAddForm(false);
             fetchLoans();
+            toast('नवीन कर्ज नोंद यशस्वीरित्या केली!', 'success');
             setFormData({
                 customerName: '',
                 mobileNumber: '',
@@ -77,7 +80,7 @@ export default function Loans() {
                 collateralImage: null
             });
         } catch (err) {
-            alert("कर्ज नोंदवताना त्रुटी आली!");
+            toast('कर्ज नोंदवताना त्रुटी आली!', 'error');
         }
     };
 
@@ -98,10 +101,10 @@ export default function Loans() {
             setPaymentAmount('');
             setPaymentType('interest');
             fetchLoans();
-            alert('पेमेंट यशस्वीरित्या नोंदवले गेले!');
+            toast('पेमेंट यशस्वीरित्या नोंदवले गेले!', 'success');
         } catch (err) {
             console.error(err);
-            alert('पेमेंट त्रुटी');
+            toast('पेमेंट जमा करताना त्रुटी आली!', 'error');
         }
     };
 
@@ -112,6 +115,17 @@ export default function Loans() {
 
     const handlePrint = () => {
         window.print();
+    };
+
+    const handleDateChange = async (id, newDate) => {
+        if (!newDate) return;
+        try {
+            await apiService.updateLoanDate(id, newDate);
+            fetchLoans();
+        } catch (err) {
+            console.error(err);
+            toast('तारीख बदलताना त्रुटी आली.', 'error');
+        }
     };
     return (
         <div className="p-4 md:p-6 space-y-6">
@@ -223,7 +237,7 @@ export default function Loans() {
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
-                            <thead>
+                            <thead className="hidden md:table-header-group">
                                 <tr className="bg-royalBlue text-white text-xs uppercase tracking-widest">
                                     <th className="p-4">ग्राहक</th>
                                     <th className="p-4">गहाण वस्तू</th>
@@ -234,25 +248,57 @@ export default function Loans() {
                                     <th className="p-4 text-center">कृती</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="flex flex-col md:table-row-group p-4 md:p-0 gap-4 md:gap-0 bg-gray-50 md:bg-transparent">
                                 {loans.map((l) => (
-                                    <tr key={l.id} className="hover:bg-blue-50/50 border-b last:border-0 transition-colors">
-                                        <td className="p-4">
-                                            <p className="font-bold text-gray-800">{l.customerName}</p>
-                                            <p className="text-xs text-gray-500">{l.mobileNumber}</p>
+                                    <tr key={l.id} className="hover:bg-blue-50/50 border border-gray-200 md:border-b md:border-x-0 md:border-t-0 last:border-0 transition-colors flex flex-col md:table-row bg-white rounded-xl md:rounded-none overflow-hidden shadow-sm md:shadow-none">
+                                        <td className="p-3 md:p-4 flex justify-between md:table-cell border-b md:border-b-0 border-gray-100 bg-gray-50 md:bg-transparent items-center">
+                                            <span className="md:hidden text-[10px] font-black uppercase text-gray-500">ग्राहक:</span>
+                                            <div className="text-right md:text-left">
+                                                <p className="font-bold text-gray-800">{l.customerName}</p>
+                                                <p className="text-xs text-gray-500">{l.mobileNumber}</p>
+                                            </div>
                                         </td>
-                                        <td className="p-4 text-gray-600 font-medium">{l.collateralItem}</td>
-                                        <td className="p-4 font-black text-royalBlue">₹ {l.loanAmount.toLocaleString()}</td>
-                                        <td className="p-4 text-gray-600 font-bold">{l.interestRate}% <span className="text-[10px] opacity-50">दरमहा</span></td>
-                                        <td className="p-4 text-gray-700 text-sm font-mono">{new Date(l.repaymentDate).toLocaleDateString('mr-IN')}</td>
-                                        <td className="p-4">
+                                        <td className="p-3 md:p-4 flex justify-between md:table-cell items-center">
+                                            <span className="md:hidden text-[10px] font-black uppercase text-gray-500">गहाण वस्तू:</span>
+                                            <span className="text-gray-600 font-medium text-right md:text-left">{l.collateralItem}</span>
+                                        </td>
+                                        <td className="p-3 md:p-4 flex justify-between md:table-cell items-center bg-blue-50/30 md:bg-transparent">
+                                            <span className="md:hidden text-[10px] font-black uppercase text-gray-500">रक्कम:</span>
+                                            <span className="font-black text-royalBlue text-right md:text-left text-lg md:text-base">₹ {l.loanAmount.toLocaleString()}</span>
+                                        </td>
+                                        <td className="p-3 md:p-4 flex justify-between md:table-cell items-center">
+                                            <span className="md:hidden text-[10px] font-black uppercase text-gray-500">व्याजदर:</span>
+                                            <span className="text-gray-600 font-bold text-right md:text-left">{l.interestRate}% <span className="text-[10px] opacity-50">दरमहा</span></span>
+                                        </td>
+                                        <td className="p-3 md:p-4 flex justify-between md:table-cell items-center">
+                                            <span className="md:hidden text-[10px] font-black uppercase text-gray-500">परतफेड:</span>
+                                            {l.status === 'Closed' ? (
+                                                <span className="text-gray-700 text-sm font-mono text-right md:text-left">{new Date(l.repaymentDate).toLocaleDateString('mr-IN')}</span>
+                                            ) : (
+                                                <div className="relative inline-block overflow-hidden bg-blue-50/50 p-1.5 rounded border border-blue-100">
+                                                    <input
+                                                        type="date"
+                                                        title="तारीख बदला"
+                                                        value={l.repaymentDate ? new Date(l.repaymentDate).toISOString().split('T')[0] : ''}
+                                                        onChange={(e) => handleDateChange(l.id, e.target.value)}
+                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                    />
+                                                    <p className="font-bold text-sm whitespace-nowrap cursor-pointer hover:underline text-blue-700 flex items-center gap-1.5 justify-center font-mono">
+                                                        {new Date(l.repaymentDate).toLocaleDateString('mr-IN')}
+                                                        <Edit3 size={14} className="text-blue-400" />
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="p-3 md:p-4 flex justify-between md:table-cell items-center">
+                                            <span className="md:hidden text-[10px] font-black uppercase text-gray-500">स्थिती:</span>
                                             <span className={`px-2 py-1 text-[10px] font-black rounded-full border ${l.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
                                                 {l.status === 'Active' ? 'सक्रिय' : 'बंद'}
                                             </span>
                                         </td>
-                                        <td className="p-4 flex justify-center space-x-2">
-                                            <button onClick={() => openPaymentModal(l.id)} className="text-xs font-black bg-royalBlue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors shadow-md">पेमेंट</button>
-                                            <button onClick={() => openReceipt(l)} className="text-xs font-black border-2 border-gold text-royalBlue px-4 py-2 rounded-lg hover:bg-gold transition-colors">रसीद</button>
+                                        <td className="p-4 flex flex-row justify-between md:justify-center gap-2 border-t md:border-t-0 border-gray-100 bg-gray-50 md:bg-transparent">
+                                            <button onClick={() => openPaymentModal(l.id)} className="flex-1 md:flex-none text-xs font-black bg-royalBlue text-white px-4 py-2.5 md:py-2 rounded-lg hover:bg-blue-800 transition-colors shadow-md text-center">पेमेंट</button>
+                                            <button onClick={() => openReceipt(l)} className="flex-1 md:flex-none text-xs font-black border-2 border-gold text-royalBlue px-4 py-2.5 md:py-2 rounded-lg hover:bg-gold transition-colors text-center bg-white">रसीद</button>
                                         </td>
                                     </tr>
                                 ))}

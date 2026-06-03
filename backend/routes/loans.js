@@ -74,4 +74,19 @@ router.post('/:id/payment', async (req, res) => {
     }
 });
 
+router.patch('/:id/date', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { repaymentDate } = req.body;
+
+        const updated = await prisma.loan.update({
+            where: { id },
+            data: { repaymentDate: new Date(repaymentDate) }
+        });
+        res.json(updated);
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
 export default router;

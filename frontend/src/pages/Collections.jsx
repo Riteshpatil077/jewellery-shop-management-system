@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Calendar, CheckCircle, AlertCircle, Loader2, Edit3 } from 'lucide-react';
 import { apiService } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 export default function Collections() {
+    const toast = useToast();
     const [showAddForm, setShowAddForm] = useState(false);
     const [editId, setEditId] = useState(null);
     const [collections, setCollections] = useState([]);
@@ -45,6 +47,7 @@ export default function Collections() {
             }
             setShowAddForm(false);
             fetchCollections();
+            toast(editId ? 'वसुली यशस्वीरित्या अपडेट केली!' : 'नवीन वसुली नोंद केली!', 'success');
             setFormData({
                 customerName: '',
                 purchasedJewelry: '',
@@ -54,7 +57,7 @@ export default function Collections() {
                 nextDueDate: ''
             });
         } catch (err) {
-            alert("वसुली माहिती जतन करताना त्रुटी आली!");
+            toast('वसुली माहिती जतन करताना त्रुटी आली!', 'error');
         }
     };
 
@@ -87,6 +90,17 @@ export default function Collections() {
 
     const handleAmountChange = (id, val) => {
         setPaymentAmounts(prev => ({ ...prev, [id]: val }));
+    };
+
+    const handleDateChange = async (id, newDate) => {
+        if (!newDate) return;
+        try {
+            await apiService.updateCollectionDate(id, newDate);
+            fetchCollections();
+        } catch (err) {
+            console.error("तारीख बदलताना त्रुटी आली", err);
+            toast('तारीख बदलताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.', 'error');
+        }
     };
 
     return (
@@ -222,7 +236,23 @@ export default function Collections() {
                                         <td className="p-6">
                                             <div className={`p-2 rounded-lg text-center ${c.status === 'Completed' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
                                                 <p className="text-[10px] font-black uppercase tracking-tighter">{c.status === 'Completed' ? 'पूर्ण' : 'तारीख'}</p>
-                                                <p className="font-bold">{c.status === 'Completed' ? '✅' : new Date(c.nextDueDate).toLocaleDateString('mr-IN')}</p>
+                                                {c.status === 'Completed' ? (
+                                                    <p className="font-bold">✅</p>
+                                                ) : (
+                                                    <div className="relative inline-block overflow-hidden">
+                                                        <input
+                                                            type="date"
+                                                            title="तारीख बदला"
+                                                            value={c.nextDueDate ? new Date(c.nextDueDate).toISOString().split('T')[0] : ''}
+                                                            onChange={(e) => handleDateChange(c.id, e.target.value)}
+                                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                        />
+                                                        <p className="font-bold whitespace-nowrap cursor-pointer hover:underline text-blue-700 flex items-center gap-1 justify-center">
+                                                            {new Date(c.nextDueDate).toLocaleDateString('mr-IN')}
+                                                            <Edit3 size={12} className="text-blue-400" />
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="p-6 text-center">

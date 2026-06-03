@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Edit, Trash2, Loader2 } from 'lucide-react';
 import { apiService } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 export default function Jewelry() {
+    const toast = useToast();
     const [showAddForm, setShowAddForm] = useState(false);
     const [editId, setEditId] = useState(null);
     const [products, setProducts] = useState([]);
@@ -65,6 +67,7 @@ export default function Jewelry() {
             setShowAddForm(false);
             setEditId(null);
             fetchProducts();
+            toast(editId ? 'उत्पादन यशस्वीरित्या अपडेट केले!' : 'नवीन उत्पादन यशस्वीरित्या जोडले!', 'success');
             setFormData({
                 name: '',
                 category: 'अंगठी (Rings)',
@@ -76,7 +79,7 @@ export default function Jewelry() {
                 stockCount: 1
             });
         } catch (err) {
-            alert("उत्पादन जतन करताना त्रुटी आली!");
+            toast('उत्पादन जतन करताना त्रुटी आली!', 'error');
         }
     };
 
@@ -100,9 +103,10 @@ export default function Jewelry() {
             try {
                 await apiService.deleteProduct(id);
                 fetchProducts();
+                toast('उत्पादन यशस्वीरित्या हटवले!', 'success');
             } catch (err) {
                 console.error(err);
-                alert("उत्पादन हटवताना त्रुटी आली!");
+                toast('उत्पादन हटवताना त्रुटी आली!', 'error');
             }
         }
     };

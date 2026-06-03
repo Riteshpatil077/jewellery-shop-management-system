@@ -124,4 +124,19 @@ router.post('/:id/pay', async (req, res) => {
     }
 });
 
+router.patch('/:id/date', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { nextDueDate } = req.body;
+
+        const updated = await prisma.collection.update({
+            where: { id },
+            data: { nextDueDate: new Date(nextDueDate) }
+        });
+        res.json(updated);
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
 export default router;

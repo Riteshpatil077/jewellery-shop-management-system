@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Phone, MapPin, User, Eye, Loader2, X, FileText, Calendar, IndianRupee } from 'lucide-react';
 import { apiService } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 export default function Customers() {
+    const toast = useToast();
     const [showAddForm, setShowAddForm] = useState(false);
     const [customers, setCustomers] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -39,8 +41,9 @@ export default function Customers() {
             setShowAddForm(false);
             fetchCustomers();
             setFormData({ name: '', mobile: '', address: '', aadhaar: '', email: '' });
+            toast('नवीन ग्राहक यशस्वीरित्या जोडला!', 'success');
         } catch (err) {
-            alert("ग्राहक नोंदणी करताना त्रुटी आली!");
+            toast('ग्राहक नोंदणी करताना त्रुटी आली!', 'error');
         }
     };
 

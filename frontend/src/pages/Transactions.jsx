@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, CheckCircle, Clock, ShoppingCart, ShoppingBag, Truck, Loader2, Send, Share2, Mail } from 'lucide-react';
 import { apiService } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 export default function Transactions() {
+    const toast = useToast();
     const [showAddForm, setShowAddForm] = useState(false);
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -147,6 +149,7 @@ export default function Transactions() {
             await apiService.addTransaction(formData);
             setShowAddForm(false);
             fetchTransactions();
+            toast('व्यवहार यशस्वीरित्या नोंदवला गेला!', 'success');
             setFormData({
                 type: 'Purchase', customerName: '', supplierName: '', mobile: '', itemName: '',
                 metalType: 'Gold', weight: '', rate: localStorage.getItem('goldRate') || '',
@@ -155,19 +158,19 @@ export default function Transactions() {
                 exchangeRate: '', exchangeValue: 0, purchaseRate: '', productId: null
             });
         } catch (err) {
-            alert("व्यवहार नोंदवताना त्रुटी आली!");
+            toast('व्यवहार नोंदवताना त्रुटी आली!', 'error');
         }
     };
 
     const handlePay = async (id) => {
         const amount = paymentAmounts[id];
-        if (!amount || amount <= 0) return alert("कृपया योग्य रक्कम टाका.");
+        if (!amount || amount <= 0) { toast('कृपया योग्य रक्कम टाका.', 'warning'); return; }
         try {
             await apiService.payTransaction(id, amount);
             setPaymentAmounts(prev => ({ ...prev, [id]: '' }));
             fetchTransactions();
         } catch (err) {
-            alert("पेमेंट अपडेट करताना त्रुटी आली.");
+            toast('पेमेंट अपडेट करताना त्रुटी आली.', 'error');
         }
     };
 
@@ -439,7 +442,7 @@ export default function Transactions() {
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
-                            <thead className="bg-[#f8fafc]">
+                            <thead className="bg-[#f8fafc] hidden md:table-header-group">
                                 <tr className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em]">
                                     <th className="p-6 border-b">प्रकार</th>
                                     <th className="p-6 border-b">ग्राहक / होलसेलर</th>
@@ -449,39 +452,50 @@ export default function Transactions() {
                                     <th className="p-6 border-b text-center">कृती</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50">
+                            <tbody className="divide-y divide-gray-50 flex flex-col md:table-row-group">
                                 {transactions.map((t) => (
-                                    <tr key={t.id} className="hover:bg-gold/5 transition-colors group">
-                                        <td className="p-6">
-                                            <div className="flex flex-col gap-1 items-start">
+                                    <tr key={t.id} className="hover:bg-gold/5 transition-colors group flex flex-col md:table-row bg-white md:bg-transparent rounded-xl md:rounded-none mb-4 md:mb-0 shadow-sm md:shadow-none border border-gray-100 md:border-none p-4 md:p-0">
+                                        <td className="p-2 md:p-6 mb-2 md:mb-0 border-b md:border-none flex justify-between md:table-cell items-center">
+                                            <span className="md:hidden text-[10px] font-black text-gray-400 uppercase">प्रकार:</span>
+                                            <div className="flex flex-col md:flex-col gap-1 items-end md:items-start">
                                                 <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-gray-100 rounded-full">{getIconPrefix(t.type)} {getTypeLabel(t.type)}</span>
                                                 <p className="text-[9px] text-gray-400 font-bold">{new Date(t.date).toLocaleDateString('mr-IN')}</p>
                                             </div>
                                         </td>
-                                        <td className="p-6">
-                                            <p className="font-black text-gray-800">{t.type === 'Purchase' ? `🏢 ${t.customerName}` : t.customerName}</p>
-                                            {t.mobile && <p className="text-[10px] text-gray-400 font-bold">{t.mobile}</p>}
+                                        <td className="p-2 md:p-6 mb-2 md:mb-0 flex justify-between md:table-cell items-center">
+                                            <span className="md:hidden text-[10px] font-black text-gray-400 uppercase">नाव:</span>
+                                            <div className="text-right md:text-left">
+                                                <p className="font-black text-gray-800">{t.type === 'Purchase' ? `🏢 ${t.customerName}` : t.customerName}</p>
+                                                {t.mobile && <p className="text-[10px] text-gray-400 font-bold">{t.mobile}</p>}
+                                            </div>
                                         </td>
-                                        <td className="p-6">
-                                            <p className="text-gray-700 font-bold">{t.itemName}</p>
-                                            <p className="text-xs text-gray-400 font-bold">{t.metalType} • {t.weight}g @ ₹{t.rate}</p>
+                                        <td className="p-2 md:p-6 mb-2 md:mb-0 flex justify-between md:table-cell items-center bg-gray-50/50 md:bg-transparent rounded-lg md:rounded-none">
+                                            <span className="md:hidden text-[10px] font-black text-gray-400 uppercase">तपशील:</span>
+                                            <div className="text-right md:text-left">
+                                                <p className="text-gray-700 font-bold">{t.itemName}</p>
+                                                <p className="text-[10px] md:text-xs text-gray-400 font-bold">{t.metalType} • {t.weight}g @ ₹{t.rate}</p>
+                                            </div>
                                         </td>
-                                        <td className="p-6">
-                                            <p className="font-black text-lg text-gray-800">₹{t.totalAmount.toLocaleString()}</p>
-                                            {t.exchangeValue > 0 && (
-                                                <div className="mt-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm inline-block">
-                                                    - ₹{t.exchangeValue.toLocaleString()} मोड ({t.exchangeItemName})
-                                                </div>
-                                            )}
+                                        <td className="p-2 md:p-6 mb-2 md:mb-0 flex justify-between md:table-cell items-center">
+                                            <span className="md:hidden text-[10px] font-black text-gray-400 uppercase">रक्कम:</span>
+                                            <div className="text-right md:text-left">
+                                                <p className="font-black text-lg text-gray-800">₹{t.totalAmount.toLocaleString()}</p>
+                                                {t.exchangeValue > 0 && (
+                                                    <div className="mt-1 text-[9px] md:text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm inline-block">
+                                                        - ₹{t.exchangeValue.toLocaleString()} मोड ({t.exchangeItemName})
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
-                                        <td className="p-6">
-                                            <div className="flex flex-col">
-                                                <span className={`text-xs font-black uppercase px-2 py-1 rounded w-max ${t.status === 'Completed' ? 'text-green-600 bg-green-50' : 'text-red-500 bg-red-50'}`}>{t.status === 'Completed' ? 'पूर्ण' : 'बाकी'}</span>
+                                        <td className="p-2 md:p-6 mb-4 md:mb-0 flex justify-between md:table-cell items-center border-t md:border-none pt-4 md:pt-6">
+                                            <span className="md:hidden text-[10px] font-black text-gray-400 uppercase">स्थिती:</span>
+                                            <div className="flex flex-col items-end md:items-start">
+                                                <span className={`text-[10px] md:text-xs font-black uppercase px-2 py-1 rounded w-max ${t.status === 'Completed' ? 'text-green-600 bg-green-50' : 'text-red-500 bg-red-50'}`}>{t.status === 'Completed' ? 'पूर्ण' : 'बाकी'}</span>
                                                 {t.balanceAmount > 0 && <span className="font-black text-red-600 mt-1">₹{t.balanceAmount.toLocaleString()} बाकी</span>}
                                             </div>
                                         </td>
-                                        <td className="p-6 text-center">
-                                            <div className="flex flex-col space-y-2 items-center">
+                                        <td className="p-2 md:p-6 text-center bg-gray-50 md:bg-transparent rounded-xl md:rounded-none flex justify-center md:table-cell">
+                                            <div className="flex flex-col md:flex-col gap-2 items-center w-full md:w-auto">
                                                 {t.balanceAmount > 0 ? (
                                                     <>
                                                         <input
@@ -489,11 +503,11 @@ export default function Transactions() {
                                                             placeholder="रक्कम"
                                                             value={paymentAmounts[t.id] || ''}
                                                             onChange={(e) => setPaymentAmounts(prev => ({ ...prev, [t.id]: e.target.value }))}
-                                                            className="w-24 text-center border-2 border-gray-200 rounded-lg p-1.5 focus:border-royalBlue outline-none text-sm font-bold shadow-sm"
+                                                            className="w-full md:w-24 text-center border-2 border-gray-200 rounded-xl p-2 md:p-1.5 focus:border-royalBlue outline-none text-sm font-bold shadow-sm"
                                                         />
                                                         <button
                                                             onClick={() => handlePay(t.id)}
-                                                            className="bg-royalBlue text-white text-xs font-black px-5 py-2 rounded-xl hover:shadow-xl hover:bg-blue-800 transition-all hover:-translate-y-1 w-full"
+                                                            className="w-full bg-royalBlue text-white text-xs font-black px-4 py-2.5 md:py-2 rounded-xl shadow-md hover:bg-blue-800 transition-all active:scale-95"
                                                         >
                                                             जमा करा
                                                         </button>
@@ -502,16 +516,16 @@ export default function Transactions() {
                                                     <span className="text-gray-300">✅ पूर्ण</span>
                                                 )}
                                                 {(t.type === 'Sell' || t.type === 'Order') && (
-                                                    <div className="flex gap-2">
-                                                        <button onClick={() => setSelectedTransaction(t)} title="Profit Analysis" className="text-[10px] font-black text-royalBlue hover:underline flex items-center gap-1 justify-center">
+                                                    <div className="flex gap-2 w-full justify-center mt-2">
+                                                        <button onClick={() => setSelectedTransaction(t)} title="Profit Analysis" className="text-[10px] font-black text-royalBlue hover:underline flex items-center gap-1 justify-center bg-blue-50 py-1 px-2 rounded-lg">
                                                             <CheckCircle size={12} /> नफा रसीद
                                                         </button>
                                                         {t.type === 'Order' && (
                                                             <>
-                                                                <button onClick={() => handleShareWhatsApp(t)} title="WhatsApp Share" className="text-green-600 hover:scale-110 transition-all">
+                                                                <button onClick={() => handleShareWhatsApp(t)} title="WhatsApp Share" className="text-green-600 bg-green-50 p-1.5 rounded-lg hover:scale-110 transition-all">
                                                                     <Send size={16} />
                                                                 </button>
-                                                                <button onClick={() => handleShareEmail(t)} title="Email Share" className="text-royalBlue hover:scale-110 transition-all">
+                                                                <button onClick={() => handleShareEmail(t)} title="Email Share" className="text-royalBlue bg-blue-50 p-1.5 rounded-lg hover:scale-110 transition-all">
                                                                     <Mail size={16} />
                                                                 </button>
                                                             </>
@@ -530,97 +544,103 @@ export default function Transactions() {
 
             {/* Profit Receipt Modal */}
             {selectedTransaction && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print-overlay">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print-overlay overflow-y-auto">
                     <style>{`
                         @media print {
                             body * { visibility: hidden !important; }
                             .print-target, .print-target * { visibility: visible !important; color: black !important; background: white !important; }
                             .print-target { 
-                                position: fixed; 
-                                left: 0; 
-                                top: 0; 
+                                position: absolute;
+                                left: 50%;
+                                top: 0;
+                                transform: translateX(-50%);
                                 width: 100%;
+                                max-width: 400px;
                                 padding: 20px;
                                 box-shadow: none !important;
                                 border: none !important;
                             }
                             .no-print { display: none !important; }
-                            .print-border-black { border: 2px solid black !important; }
+                            .print-border-black { border: 2px solid black !important; border-radius: 0px !important; }
                             .print-bg-light { background: #f9f9f9 !important; border: 1px solid #ddd !important; }
                         }
                     `}</style>
-                    <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in duration-300 print-target print-border-black">
-                        <div className="bg-royalBlue p-6 text-white text-center relative no-print">
-                            <button onClick={() => setSelectedTransaction(null)} className="absolute right-4 top-4 text-white/50 hover:text-white">✕</button>
-                            <h3 className="text-xl font-bold">नफा विश्लेषण रसीद</h3>
+                    <div className="bg-white w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in duration-300 print-target print-border-black my-auto">
+                        <div className="bg-gradient-to-r from-royalBlue to-blue-900 p-6 text-white text-center relative no-print">
+                            <h3 className="text-xl font-black tracking-widest text-gold drop-shadow-md">नफा विश्लेषण रसीद</h3>
                         </div>
 
                         {/* Printable Header */}
-                        <div className="text-center border-b-2 border-black pb-4 mb-6 pt-4 px-8">
-                            <h1 className="text-3xl font-black text-black">श्री कृष्णा ज्वेलर्स</h1>
-                            <p className="text-[10px] font-bold text-gray-700 uppercase tracking-widest mt-1">शुद्धतेची आणि विश्वासाची परंपरा</p>
-                            <div className="mt-4 border-y border-black py-1">
-                                <p className="text-xs font-black text-black uppercase tracking-widest">वस्तू नफा विश्लेषण अहवाल (Profit Report)</p>
+                        <div className="text-center border-b-2 border-black border-dashed pb-4 mb-6 pt-6 px-8">
+                            <h1 className="text-3xl font-black text-black tracking-tighter">श्री कृष्णा ज्वेलर्स</h1>
+                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">शुद्धतेची व विश्वासाची परंपरा</p>
+                            <div className="mt-4 border-y border-black py-1.5">
+                                <p className="text-[11px] font-black text-black uppercase tracking-widest bg-gray-100 py-1 print-bg-light">व्यवहार नफा अहवाल</p>
                             </div>
                         </div>
 
-                        <div className="px-10 pb-10 space-y-6">
-                            <div className="flex justify-between border-b border-black pb-4">
+                        <div className="px-8 pb-10 space-y-6">
+                            <div className="flex justify-between border-b border-gray-300 pb-4">
                                 <div>
-                                    <p className="text-[10px] font-black text-gray-500 uppercase">वस्तू (Item)</p>
-                                    <p className="font-black text-xl text-black">{selectedTransaction.itemName}</p>
-                                    <p className="text-[10px] font-bold text-gray-600">{selectedTransaction.metalType} • {selectedTransaction.weight}g</p>
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">वस्तू (Item)</p>
+                                    <p className="font-black text-lg text-black">{selectedTransaction.itemName}</p>
+                                    <p className="text-[10px] font-bold text-gray-500">{selectedTransaction.metalType} • {selectedTransaction.weight}g</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[10px] font-black text-gray-500 uppercase">तारीख (Date)</p>
-                                    <p className="font-bold text-black border-b border-gray-300">{new Date(selectedTransaction.date).toLocaleDateString('mr-IN')}</p>
-                                    <p className="text-[9px] text-gray-400 mt-1">Ref: #TRS-{selectedTransaction.id}</p>
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">तारीख (Date)</p>
+                                    <p className="font-bold text-black border-b border-gray-300 pb-0.5">{new Date(selectedTransaction.date).toLocaleDateString('mr-IN')}</p>
+                                    <p className="text-[9px] font-black text-gray-400 mt-1 uppercase">Ref: #{selectedTransaction.id}</p>
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center py-2 border-b border-dashed">
-                                    <span className="text-xs font-bold text-gray-700">खरेदी किंमत (Purchase Cost):</span>
-                                    <span className="font-black">₹{(selectedTransaction.purchaseRate * selectedTransaction.weight).toLocaleString()}</span>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center py-1">
+                                    <span className="text-xs font-bold text-gray-600">खरेदी किंमत (Cost):</span>
+                                    <span className="font-black text-sm text-gray-800">₹{(selectedTransaction.purchaseRate * selectedTransaction.weight).toLocaleString()}</span>
                                 </div>
-                                <div className="flex justify-between items-center py-2 border-b border-dashed">
-                                    <span className="text-xs font-bold text-gray-700">विक्री किंमत (Sales Price):</span>
-                                    <span className="font-black">₹{selectedTransaction.totalAmount.toLocaleString()}</span>
+                                <div className="flex justify-between items-center py-1">
+                                    <span className="text-xs font-bold text-gray-600">विक्री किंमत (Sales):</span>
+                                    <span className="font-black text-sm text-gray-800">₹{selectedTransaction.totalAmount.toLocaleString()}</span>
                                 </div>
-                                <div className="flex justify-between items-center py-2 border-b border-dashed">
-                                    <span className="text-xs font-bold text-gray-700">मजुरी नफा (Making Profit):</span>
-                                    <span className="font-black">₹{selectedTransaction.makingCharges.toLocaleString()}</span>
+                                <div className="flex justify-between items-center py-1">
+                                    <span className="text-xs font-bold text-gray-600">मजुरी किंमत (Making):</span>
+                                    <span className="font-black text-sm text-gray-800">₹{selectedTransaction.makingCharges.toLocaleString()}</span>
                                 </div>
                             </div>
 
                             <div className="pt-6">
-                                <div className="border-2 border-black p-5 flex justify-between items-center bg-gray-50 print-bg-light">
+                                <div className="border-2 border-black rounded-2xl p-5 flex justify-between items-center bg-gray-50 print-bg-light shadow-inner shadow-gray-200/50">
                                     <span>
-                                        <p className="text-xl font-black text-black">एकूण शुद्ध नफा</p>
-                                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">(Total Net Profit)</p>
+                                        <p className="text-xl font-black text-black">निव्वळ नफा</p>
+                                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-0.5">Total Net Profit</p>
                                     </span>
-                                    <span className="text-4xl font-black text-black">
-                                        ₹{Math.round(((selectedTransaction.rate - selectedTransaction.purchaseRate) * selectedTransaction.weight) + selectedTransaction.makingCharges).toLocaleString()}
+                                    <span className="text-3xl font-black text-green-700 print:text-black drop-shadow-sm">
+                                        ₹{Math.round(((selectedTransaction.rate - selectedTransaction.purchaseRate) * selectedTransaction.weight) + selectedTransaction.makingCharges).toLocaleString('en-IN')}
                                     </span>
                                 </div>
                             </div>
 
                             <div className="pt-12 flex justify-between items-end px-2">
-                                <div className="text-center w-36 border-t border-black pt-1">
+                                <div className="text-center w-32 border-t border-black border-dashed pt-2">
                                     <p className="text-[10px] font-bold">व्यवस्थापकाची सही</p>
                                 </div>
-                                <div className="text-center w-36 border-t border-black pt-1">
-                                    <p className="text-[10px] font-bold">प्रोप्रायटर / कॅशियर</p>
+                                <div className="text-center w-32 border-t border-black border-dashed pt-2">
+                                    <p className="text-[10px] font-bold">ग्राहकाची सही</p>
                                 </div>
                             </div>
 
                             <div className="text-center pt-8 opacity-60">
-                                <p className="text-[8px] text-black italic tracking-[0.3em] font-black">।। धन्यवाद ।।</p>
+                                <p className="text-[8px] text-black italic tracking-[0.4em] font-black">।। धन्यवाद ।।</p>
                             </div>
                         </div>
 
-                        <div className="p-6 bg-gray-50 flex justify-center no-print border-t">
-                            <button onClick={() => window.print()} className="bg-royalBlue text-white px-12 py-3 rounded-full font-black text-sm shadow-xl hover:scale-105 transition-all">प्रिंट करा (Print Receipt)</button>
+                        <div className="px-6 py-5 bg-gray-50 flex gap-4 no-print border-t border-gray-200">
+                            <button onClick={() => setSelectedTransaction(null)} className="flex-1 bg-white border border-gray-300 text-gray-600 py-3.5 rounded-xl font-black text-sm shadow-sm hover:bg-gray-100 hover:text-red-500 transition-colors">
+                                रद्द करा (Cancel)
+                            </button>
+                            <button onClick={() => window.print()} className="flex-1 bg-royalBlue text-white py-3.5 rounded-xl font-black text-sm shadow-lg shadow-blue-500/30 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2">
+                                🖨️ प्रिंट रसीद
+                            </button>
                         </div>
                     </div>
                 </div>
