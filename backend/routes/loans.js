@@ -6,10 +6,14 @@ const router = express.Router();
 router.get('/', async (req, res) => {
     try {
         const { search } = req.query;
-        const loans = await prisma.loan.findMany({
+        let loans = await prisma.loan.findMany({
             where: search ? { customerName: { contains: search, mode: 'insensitive' } } : {},
             orderBy: { createdAt: 'desc' }
         });
+
+        // Push 'Closed' status downwards in the list
+        loans.sort((a, b) => (a.status === 'Closed' ? 1 : 0) - (b.status === 'Closed' ? 1 : 0));
+
         res.json(loans);
     } catch (err) {
         res.status(500).json({ error: err.message });

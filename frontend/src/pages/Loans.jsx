@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, FileText, Loader2, IndianRupee, Printer, X, Image as ImageIcon, Edit3 } from 'lucide-react';
+import ReceiptModal from '../components/ReceiptModal';
 import { apiService } from '../services/api';
 import { useToast } from '../context/ToastContext';
 
@@ -86,16 +87,47 @@ export default function Loans() {
 
     const openPaymentModal = (id) => {
         setPaymentLoanId(id);
+        setSelectedLoan(id);
         setShowPaymentModal(true);
     };
 
     const submitPayment = async (e) => {
         e.preventDefault();
+        const amt = parseFloat(paymentAmount);
+
+        if (amt <= 0) {
+            toast('कृपया शून्य पेक्षा जास्त रक्कम टाका.', 'error');
+            return;
+        }
+
+        const l = loans.find(x => x.id === selectedLoan);
+        let expectedTotInt = l.totalInterest || 0;
+        if (expectedTotInt === 0 && l.interestRate > 0) {
+            expectedTotInt = ((l.loanAmount * l.interestRate) / 100) * (l.durationMonths || 12);
+        }
+
+        if (paymentType === 'interest') {
+            if (l.interestRate === 0) {
+                toast('या कर्जावर कोणताही व्याजदर लागू नाही (0%).', 'error');
+                return;
+            }
+            const dueInt = Math.max(0, expectedTotInt - (l.interestPaid || 0));
+            if (amt > dueInt) {
+                toast(`चुकीची रक्कम! फक्त ₹${dueInt.toLocaleString('en-IN')} व्याज बाकी आहे.`, 'error');
+                return;
+            }
+        } else {
+            const duePrin = Math.max(0, (l.loanAmount || 0) - (l.amountPaid || 0));
+            if (amt > duePrin) {
+                toast(`चुकीची रक्कम! फक्त ₹${duePrin.toLocaleString('en-IN')} मुद्दल बाकी आहे.`, 'error');
+                return;
+            }
+        }
+
         try {
-            await fetch(`http://localhost:5000/api/loans/${paymentLoanId}/payment`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: parseFloat(paymentAmount), paymentType })
+            await apiService.addLoanPayment(selectedLoan, {
+                amount: parseFloat(paymentAmount),
+                paymentType
             });
             setShowPaymentModal(false);
             setPaymentAmount('');
@@ -262,9 +294,36 @@ export default function Loans() {
                                             <span className="md:hidden text-[10px] font-black uppercase text-gray-500">गहाण वस्तू:</span>
                                             <span className="text-gray-600 font-medium text-right md:text-left">{l.collateralItem}</span>
                                         </td>
-                                        <td className="p-3 md:p-4 flex justify-between md:table-cell items-center bg-blue-50/30 md:bg-transparent">
-                                            <span className="md:hidden text-[10px] font-black uppercase text-gray-500">रक्कम:</span>
-                                            <span className="font-black text-royalBlue text-right md:text-left text-lg md:text-base">₹ {l.loanAmount.toLocaleString()}</span>
+                                        <td className="p-3 md:p-4 flex flex-col md:table-cell bg-blue-50/30 md:bg-transparent">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="md:hidden text-[10px] font-black uppercase text-gray-500">रक्कम (PA):</span>
+                                                <span className="font-black text-royalBlue text-right md:text-left text-lg md:text-base">₹ {l.loanAmount.toLocaleString()}</span>
+                                            </div>
+                                            <div className="w-full space-y-1.5 mt-2">
+                                                {/* Principal Tracker */}
+                                                <div>
+                                                    <div className="flex justify-between text-[9px] font-bold text-gray-500 uppercase">
+                                                        <span>मुद्दल (PA)</span>
+                                                        <span>{Math.round(((l.amountPaid || 0) / l.loanAmount) * 100)}% भरले</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 rounded-full h-1.5 mt-0.5">
+                                                        <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, ((l.amountPaid || 0) / l.loanAmount) * 100)}%` }}></div>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className="flex justify-between text-[9px] font-bold text-gray-500 uppercase">
+                                                        <span>व्याज (Int)</span>
+                                                        <span>
+                                                            {l.interestRate > 0
+                                                                ? `${Math.round(((l.interestPaid || 0) / (l.totalInterest || (((l.loanAmount * l.interestRate) / 100) * (l.durationMonths || 12)))) * 100)}% भरले`
+                                                                : 'लागू नाही'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 rounded-full h-1.5 mt-0.5">
+                                                        <div className="bg-orange-500 h-1.5 rounded-full" style={{ width: l.interestRate > 0 ? `${Math.min(100, ((l.interestPaid || 0) / (l.totalInterest || (((l.loanAmount * l.interestRate) / 100) * (l.durationMonths || 12)))) * 100)}%` : '0%' }}></div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="p-3 md:p-4 flex justify-between md:table-cell items-center">
                                             <span className="md:hidden text-[10px] font-black uppercase text-gray-500">व्याजदर:</span>
@@ -324,7 +383,7 @@ export default function Loans() {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-gray-600 mb-1">रक्कम (₹)</label>
-                                <input type="number" required value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} className="w-full border-2 p-2 rounded focus:border-royalBlue outline-none font-bold" placeholder="उदा. 1500" />
+                                <input type="number" step="0.01" min="1" required value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} className="w-full border-2 p-2 rounded focus:border-royalBlue outline-none font-bold" placeholder="उदा. 1500" />
                             </div>
                             <div className="flex justify-end pt-4">
                                 <button type="submit" className="bg-gold text-royalBlue font-black px-6 py-2 rounded shadow-md hover:bg-yellow-500 transition-all">जमा करा</button>
@@ -334,128 +393,12 @@ export default function Loans() {
                 </div>
             )}
 
-            {showReceiptModal && selectedLoan && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center p-4 overflow-y-auto pt-8 pb-12">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl my-8">
-                        <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl print:hidden">
-                            <button onClick={handlePrint} className="flex items-center space-x-2 bg-royalBlue text-white px-4 py-2 rounded shadow hover:bg-blue-800 hover:shadow-lg transition-all"><Printer size={18} /> <span>Print रसीद</span></button>
-                            <button onClick={() => setShowReceiptModal(false)} className="text-gray-500 hover:text-red-500"><X size={24} /></button>
-                        </div>
-
-                        <div className="p-8 print:p-6 print:m-0 bg-white text-gray-900 border-2 border-royalBlue print:border-gray-800 m-4 rounded-lg" id="receipt-print-area">
-                            <div className="text-center border-b-2 border-royalBlue print:border-gray-800 pb-4 mb-6">
-                                <h1 className="text-4xl font-black text-royalBlue print:text-black mb-1 font-marathi">श्री कृष्णा ज्वेलर्स</h1>
-                                <p className="text-sm font-bold text-gray-700">मुख्य बाजारपेठ, शिवाजी चौक, दुकान क्र. १०५</p>
-                                <p className="text-xs text-gray-500 mb-2">मोबाईल: 9876543210 | GSTIN: 27XXXXX1234X1ZX</p>
-                                <div className="inline-block bg-gold print:bg-gray-200 text-royalBlue print:text-black font-black px-4 py-1 rounded-full text-sm border print:border-black">सुवर्ण तारण कर्ज पावती (Gold Loan Receipt)</div>
-                            </div>
-
-                            <div className="flex justify-between items-start mb-6 text-sm border-b pb-4 border-dashed border-gray-300">
-                                <div>
-                                    <p className="mb-1"><span className="text-gray-500 w-20 inline-block">पावती क्र.:</span> <span className="font-bold text-red-600 print:text-black text-lg">LN-{selectedLoan.id.toString().padStart(4, '0')}</span></p>
-                                    <p><span className="text-gray-500 w-20 inline-block">दिनांक:</span> <span className="font-bold">{new Date().toLocaleDateString('mr-IN')}</span></p>
-                                    <p><span className="text-gray-500 w-20 inline-block">कर्ज दिनांक:</span> <span className="font-bold">{new Date(selectedLoan.loanDate).toLocaleDateString('mr-IN')}</span></p>
-                                </div>
-                                <div className="text-right">
-                                    <p><span className="text-gray-500 inline-block">स्थिती:</span> <span className="font-black border border-gray-300 px-2 rounded-sm ml-2">{selectedLoan.status === 'Active' ? 'सक्रिय (Active)' : 'बंद (Closed)'}</span></p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-6 mb-6 text-sm">
-                                <div className="border p-4 rounded-lg bg-gray-50 print:bg-transparent print:border-gray-800">
-                                    <h4 className="font-black text-gray-800 mb-3 border-b pb-1">ग्राहक माहिती</h4>
-                                    <p className="mb-1"><span className="text-gray-500">नाव:</span> <span className="font-bold">{selectedLoan.customerName}</span></p>
-                                    <p className="mb-1"><span className="text-gray-500">मोबाईल:</span> <span className="font-bold">{selectedLoan.mobileNumber}</span></p>
-                                    <p><span className="text-gray-500">पत्ता:</span> <span className="font-bold">{selectedLoan.address || '-'}</span></p>
-                                </div>
-
-                                <div className="border p-4 rounded-lg bg-gray-50 print:bg-transparent print:border-gray-800 flex justify-between items-start">
-                                    <div>
-                                        <h4 className="font-black text-gray-800 mb-3 border-b pb-1">गहाण वस्तू तपशील</h4>
-                                        <p className="mb-1"><span className="text-gray-500">वस्तू:</span> <span className="font-bold">{selectedLoan.collateralItem}</span></p>
-                                        <p className="mb-1"><span className="text-gray-500">वजन:</span> <span className="font-bold">{selectedLoan.weight ? `${selectedLoan.weight} ग्रॅम` : '-'}</span></p>
-                                        <p><span className="text-gray-500">शुद्धता:</span> <span className="font-bold">{selectedLoan.purity || '-'}</span></p>
-                                    </div>
-                                    {selectedLoan.collateralImage ? (
-                                        <img src={selectedLoan.collateralImage} alt="Collateral" className="w-20 h-20 object-cover border-2 border-gray-300 rounded print:border-gray-800" />
-                                    ) : (
-                                        <div className="w-20 h-20 bg-gray-200 rounded flex flex-col items-center justify-center text-gray-400 border border-dashed border-gray-300">
-                                            <ImageIcon size={20} className="mb-1 opacity-50" />
-                                            <span className="text-[10px] font-bold">फोटो नाही</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="border border-gray-300 print:border-gray-800 rounded-lg overflow-hidden mb-6">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-gray-100 print:bg-transparent border-b border-gray-300 print:border-gray-800">
-                                        <tr>
-                                            <th className="p-3 text-left">हिशोब तपशील</th>
-                                            <th className="p-3 text-right">रक्कम (₹)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200 print:divide-gray-400">
-                                        <tr>
-                                            <td className="p-3 font-medium">१. एकूण दिलेले कर्ज (Principal Amount)</td>
-                                            <td className="p-3 text-right font-black">₹ {selectedLoan.loanAmount.toLocaleString()}</td>
-                                        </tr>
-                                        <tr>
-                                            <td className="p-3 text-gray-600">   • निश्चित व्याजदर (Interest Rate)</td>
-                                            <td className="p-3 text-right text-gray-600">{selectedLoan.interestRate}% प्रति महिना</td>
-                                        </tr>
-                                        <tr>
-                                            <td className="p-3 font-medium">२. एकूण अपेक्षित व्याज (Total Interest)</td>
-                                            <td className="p-3 text-right">₹ {selectedLoan.totalInterest.toLocaleString()}</td>
-                                        </tr>
-                                        <tr className="bg-gray-50 print:bg-transparent">
-                                            <td className="p-3 font-bold">३. आतापर्यंत भरलेले मुद्दल (Principal Paid)</td>
-                                            <td className="p-3 text-right font-bold text-gray-800">₹ {(selectedLoan.amountPaid || 0).toLocaleString()}</td>
-                                        </tr>
-                                        <tr className="bg-gray-50 print:bg-transparent">
-                                            <td className="p-3 font-bold">४. आतापर्यंत भरलेले व्याज (Interest Paid)</td>
-                                            <td className="p-3 text-right font-bold text-gray-800">₹ {(selectedLoan.interestPaid || 0).toLocaleString()}</td>
-                                        </tr>
-                                        <tr className="border-t-2 border-gray-400 print:border-gray-800 bg-gray-100 print:bg-transparent">
-                                            <td className="p-3 font-black text-lg">शिल्लक मुद्दल रक्कम (Balance Principal)</td>
-                                            <td className="p-3 text-right font-black text-lg">₹ {Math.max(0, selectedLoan.loanAmount - (selectedLoan.amountPaid || 0)).toLocaleString()}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div className="flex justify-between items-end mt-10 mb-12 pt-4 px-4 text-sm">
-                                <div className="text-center w-1/3">
-                                    <div className="border-b border-gray-400 print:border-gray-800 w-full mb-2"></div>
-                                    <p className="font-bold text-gray-800">ग्राहक स्वाक्षरी</p>
-                                </div>
-                                <div className="text-center w-1/3">
-                                    <div className="border-b border-gray-400 print:border-gray-800 w-full mb-2"></div>
-                                    <p className="font-bold text-gray-800">अधिकृत स्वाक्षरी</p>
-                                    <p className="text-gray-500 text-[10px] mt-1">(श्री कृष्णा ज्वेलर्स)</p>
-                                </div>
-                            </div>
-
-                            <div className="mt-6 pt-4 border-t border-gray-200 print:border-gray-800 text-xs text-gray-500 print:text-gray-800">
-                                <h5 className="font-bold mb-2">नियम आणि अटी (Terms & Conditions):</h5>
-                                <ol className="list-decimal pl-4 space-y-1">
-                                    <li>कर्जाची मुदत संपल्यावर व्याजासह रक्कम भरणे बंधनकारक आहे.</li>
-                                    <li>व्याज दरमहा आकारले जाईल.</li>
-                                    <li>पावती सोबत असल्याशिवाय गहाण वस्तू परत दिली जाणार नाही.</li>
-                                    <li>बदललेल्या पत्त्याची किंवा मोबाईल नंबरची माहिती देणे आवश्यक आहे.</li>
-                                </ol>
-                            </div>
-                        </div>
-
-                        <div className="p-4 bg-gray-50 rounded-b-xl border-t print:hidden flex justify-center">
-                            <button onClick={handlePrint} className="bg-gold text-royalBlue px-8 py-2 rounded-lg font-black shadow-lg hover:bg-yellow-500 transition-all flex items-center space-x-2">
-                                <Printer size={20} />
-                                <span>Print Receipt</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ReceiptModal
+                isOpen={showReceiptModal}
+                onClose={() => setShowReceiptModal(false)}
+                data={selectedLoan}
+                type="loan"
+            />
         </div>
     );
 }

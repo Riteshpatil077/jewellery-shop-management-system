@@ -6,7 +6,6 @@ const router = express.Router();
 router.get('/summary', async (req, res) => {
     try {
         const transactions = await prisma.transaction.findMany({
-            where: { type: 'Sell', status: 'Completed' },
             orderBy: { date: 'desc' }
         });
 
@@ -19,15 +18,18 @@ router.get('/summary', async (req, res) => {
             const d = new Date(t.date);
             const monthYear = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             if (!monthlySalesMap[monthYear]) monthlySalesMap[monthYear] = { count: 0, total: 0, profit: 0 };
-            monthlySalesMap[monthYear].count += 1;
-            monthlySalesMap[monthYear].total += t.totalAmount;
 
-            // basic profit calculation if purchaseRate exists
-            if (t.purchaseRate && t.weight) {
-                const cost = t.purchaseRate * t.weight;
-                monthlySalesMap[monthYear].profit += (t.totalAmount - cost);
-            } else {
-                monthlySalesMap[monthYear].profit += (t.totalAmount * 0.15); // 15% estimated margin fallback
+            if (t.type === 'Sell' || t.type === 'Order') {
+                monthlySalesMap[monthYear].count += 1;
+                monthlySalesMap[monthYear].total += t.totalAmount;
+
+                // basic profit calculation if purchaseRate exists
+                if (t.purchaseRate && t.weight) {
+                    const cost = t.purchaseRate * t.weight;
+                    monthlySalesMap[monthYear].profit += (t.totalAmount - cost);
+                } else {
+                    monthlySalesMap[monthYear].profit += (t.totalAmount * 0.15); // 15% estimated margin fallback
+                }
             }
         });
 
@@ -57,7 +59,9 @@ router.get('/summary', async (req, res) => {
             collectionStats: {
                 pending: totalPendingCollections,
                 collected: totalCollectedAmount
-            }
+            },
+            recentTransactions: transactions.slice(0, 100),
+            loansList: loans.slice(0, 100),
         });
     } catch (err) {
         res.status(500).json({ error: err.message });

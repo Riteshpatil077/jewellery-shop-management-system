@@ -6,10 +6,14 @@ const router = express.Router();
 router.get('/', async (req, res) => {
     try {
         const { search } = req.query;
-        const collections = await prisma.collection.findMany({
+        let collections = await prisma.collection.findMany({
             where: search ? { customerName: { contains: search, mode: 'insensitive' } } : {},
             orderBy: { createdAt: 'desc' }
         });
+
+        // Push 'Completed' to the bottom of the list
+        collections.sort((a, b) => (a.status === 'Completed' ? 1 : 0) - (b.status === 'Completed' ? 1 : 0));
+
         res.json(collections);
     } catch (err) {
         res.status(500).json({ error: err.message });

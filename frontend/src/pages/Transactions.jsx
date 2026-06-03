@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, CheckCircle, Clock, ShoppingCart, ShoppingBag, Truck, Loader2, Send, Share2, Mail } from 'lucide-react';
+import { Plus, Search, CheckCircle, Clock, ShoppingCart, ShoppingBag, Truck, Loader2, Send, Share2, Mail, Printer, Download, Filter } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import ReceiptModal from '../components/ReceiptModal';
+import * as XLSX from 'xlsx';
 
 export default function Transactions() {
     const toast = useToast();
@@ -14,6 +16,7 @@ export default function Transactions() {
     const [profitData, setProfitData] = useState(null);
     const [showProfitSummary, setShowProfitSummary] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState(null);
+    const [billTransaction, setBillTransaction] = useState(null);
     const [products, setProducts] = useState([]);
     const [formData, setFormData] = useState({
         type: 'Purchase',
@@ -195,6 +198,77 @@ export default function Transactions() {
         window.location.href = `mailto:?subject=${subject}&body=${body}`;
     };
 
+    const exportTransactions = () => {
+        const today = new Date().toLocaleDateString('en-IN');
+
+        // Try Excel if XLSX is available, otherwise fallback to CSV
+        if (typeof XLSX !== 'undefined') {
+            try {
+                const rows = [
+                    ['श्री कृष्णा ज्वेलर्स — व्यवहार यादी'],
+                    [`निर्यात तारीख: ${today}${filterType ? ` | फिल्टर: ${filterType}` : ''}`],
+                    [],
+                    ['दिनांक', 'प्रकार', 'रसीद क्र.', 'ग्राहक / पक्ष', 'वस्तू', 'धातू', 'वजन (g)', 'दर (₹/g)', 'मजुरी (₹)', 'एकूण (₹)', 'जमा (₹)', 'बाकी (₹)', 'स्थिती'],
+                    ...transactions.map(t => [
+                        new Date(t.date).toLocaleDateString('en-IN'),
+                        t.type === 'Sell' ? 'विक्री' : t.type === 'Purchase' ? 'खरेदी' : 'ऑर्डर',
+                        `INV-${t.id}`,
+                        t.customerName || t.supplierName || '',
+                        t.itemName,
+                        t.metalType,
+                        t.weight,
+                        t.rate,
+                        t.makingCharges || 0,
+                        t.totalAmount,
+                        t.advancePaid || 0,
+                        t.balanceAmount || 0,
+                        t.status
+                    ])
+                ];
+                const ws = XLSX.utils.aoa_to_sheet(rows);
+                ws['!cols'] = [
+                    { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 22 }, { wch: 18 },
+                    { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 14 },
+                    { wch: 12 }, { wch: 12 }, { wch: 10 }
+                ];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'व्यवहार यादी');
+                XLSX.writeFile(wb, `Transactions_${today.replace(/\//g, '-')}.xlsx`);
+                return;
+            } catch (e) {
+                console.error("XLSX failed, falling back to CSV", e);
+            }
+        }
+
+        // Fallback: CSV Export
+        const headers = "दिनांक,प्रकार,रसीद क्र.,ग्राहक,वस्तू,धातू,वजन,दर,मजुरी,एकूण,जमा,बाकी,स्थिती\n";
+        const csvRows = transactions.map(t => {
+            return [
+                new Date(t.date).toLocaleDateString('en-IN'),
+                t.type,
+                `INV-${t.id}`,
+                t.customerName || t.supplierName || '',
+                t.itemName,
+                t.metalType,
+                t.weight,
+                t.rate,
+                t.makingCharges || 0,
+                t.totalAmount,
+                t.advancePaid || 0,
+                t.balanceAmount || 0,
+                t.status
+            ].join(",");
+        }).join("\n");
+
+        const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers + csvRows;
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Transactions_${today.replace(/\//g, '-')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+    };
+
     const getTypeLabel = (type) => {
         switch (type) {
             case 'Sell': return 'विक्री (Sale)';
@@ -208,12 +282,12 @@ export default function Transactions() {
         <div className="p-4 md:p-6 space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h2 className="text-2xl font-bold text-royalBlue">व्यवहार व्यवस्थापन (Sales & Orders)</h2>
-                <div className="flex space-x-3">
-                    <button onClick={() => setShowProfitSummary(!showProfitSummary)} className="bg-royalBlue text-white font-bold py-2 px-6 rounded-full shadow-lg flex items-center space-x-2 transition-all hover:scale-105 border-2 border-white/20">
-                        <CheckCircle size={18} /><span>नफा विश्लेषण (Profit Analysis)</span>
+                <div className="flex gap-2 w-full md:w-auto">
+                    <button onClick={() => setShowProfitSummary(!showProfitSummary)} className="flex-1 md:flex-initial bg-royalBlue/10 text-royalBlue font-black py-2 px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all hover:bg-royalBlue hover:text-white active:scale-95 border border-royalBlue/20">
+                        <CheckCircle size={14} /><span>नफा विश्लेषण</span>
                     </button>
-                    <button onClick={() => setShowAddForm(!showAddForm)} className="bg-gold hover:bg-yellow-500 text-royalBlue font-black py-2 px-6 rounded-full shadow-lg flex items-center space-x-2 transition-all hover:scale-105">
-                        <Plus size={20} /><span>नवीन नोंद</span>
+                    <button onClick={() => setShowAddForm(!showAddForm)} className="flex-1 md:flex-initial bg-gold text-royalBlue font-black py-2 px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all hover:bg-yellow-500 active:scale-95 shadow-sm">
+                        <Plus size={16} /><span>नवीन नोंद</span>
                     </button>
                 </div>
             </div>
@@ -413,7 +487,8 @@ export default function Transactions() {
                 </form>
             )}
 
-            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-2">
+            <div className="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3 mb-2">
+                {/* Search Box */}
                 <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 flex-1 relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                     <input
@@ -425,12 +500,22 @@ export default function Transactions() {
                     />
                 </div>
 
-                <div className="flex space-x-1 bg-gray-150 p-1.5 rounded-xl shadow-inner overflow-x-auto w-full md:w-max bg-gray-100 items-center hide-scrollbar">
+                {/* Filter Tabs */}
+                <div className="flex space-x-1 bg-gray-100 p-1.5 rounded-xl shadow-inner overflow-x-auto w-full md:w-max items-center hide-scrollbar">
                     <button onClick={() => setFilterType('')} className={`px-5 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest transition-all whitespace-nowrap ${filterType === '' ? 'bg-white shadow-md border-b-2 border-royalBlue text-royalBlue' : 'text-gray-500 hover:bg-gray-200'}`}>सर्व (All)</button>
-                    <button onClick={() => setFilterType('Purchase')} className={`px-5 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest transition-all flex items-center space-x-2 whitespace-nowrap ${filterType === 'Purchase' ? 'bg-white shadow-md border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:bg-gray-200'}`}><ShoppingCart size={14} /><span>खरेदी (Buy)</span></button>
-                    <button onClick={() => setFilterType('Sell')} className={`px-5 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest transition-all flex items-center space-x-2 whitespace-nowrap ${filterType === 'Sell' ? 'bg-white shadow-md border-b-2 border-green-500 text-green-600' : 'text-gray-500 hover:bg-gray-200'}`}><ShoppingBag size={14} /><span>विक्री (Sell)</span></button>
-                    <button onClick={() => setFilterType('Order')} className={`px-5 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest transition-all flex items-center space-x-2 whitespace-nowrap ${filterType === 'Order' ? 'bg-white shadow-md border-b-2 border-orange-500 text-orange-600' : 'text-gray-500 hover:bg-gray-200'}`}><Truck size={14} /><span>ऑर्डर्स (Order)</span></button>
+                    <button onClick={() => setFilterType('Purchase')} className={`px-5 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest transition-all flex items-center space-x-2 whitespace-nowrap ${filterType === 'Purchase' ? 'bg-white shadow-md border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:bg-gray-200'}`}><ShoppingCart size={14} /><span>खरेदी</span></button>
+                    <button onClick={() => setFilterType('Sell')} className={`px-5 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest transition-all flex items-center space-x-2 whitespace-nowrap ${filterType === 'Sell' ? 'bg-white shadow-md border-b-2 border-green-500 text-green-600' : 'text-gray-500 hover:bg-gray-200'}`}><ShoppingBag size={14} /><span>विक्री</span></button>
+                    <button onClick={() => setFilterType('Order')} className={`px-5 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest transition-all flex items-center space-x-2 whitespace-nowrap ${filterType === 'Order' ? 'bg-white shadow-md border-b-2 border-orange-500 text-orange-600' : 'text-gray-500 hover:bg-gray-200'}`}><Truck size={14} /><span>ऑर्डर</span></button>
                 </div>
+
+                {/* Export Button */}
+                <button
+                    onClick={exportTransactions}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-black px-5 py-3 rounded-xl shadow-md transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+                >
+                    <Download size={16} />
+                    <span>एक्सपोर्ट (.xlsx)</span>
+                </button>
             </div>
 
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
@@ -517,8 +602,11 @@ export default function Transactions() {
                                                 )}
                                                 {(t.type === 'Sell' || t.type === 'Order') && (
                                                     <div className="flex gap-2 w-full justify-center mt-2">
+                                                        <button onClick={() => setBillTransaction(t)} title="Customer Bill" className="text-[10px] font-black text-white hover:bg-gold transition-colors flex items-center gap-1 justify-center bg-royalBlue py-1 px-2 rounded-lg">
+                                                            <Printer size={12} /> बँक पावती
+                                                        </button>
                                                         <button onClick={() => setSelectedTransaction(t)} title="Profit Analysis" className="text-[10px] font-black text-royalBlue hover:underline flex items-center gap-1 justify-center bg-blue-50 py-1 px-2 rounded-lg">
-                                                            <CheckCircle size={12} /> नफा रसीद
+                                                            <CheckCircle size={12} /> नफा अहवाल
                                                         </button>
                                                         {t.type === 'Order' && (
                                                             <>
@@ -639,12 +727,19 @@ export default function Transactions() {
                                 रद्द करा (Cancel)
                             </button>
                             <button onClick={() => window.print()} className="flex-1 bg-royalBlue text-white py-3.5 rounded-xl font-black text-sm shadow-lg shadow-blue-500/30 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2">
-                                🖨️ प्रिंट रसीद
+                                🖨️ प्रिंट अहवाल
                             </button>
                         </div>
                     </div>
                 </div>
             )}
+
+            <ReceiptModal
+                isOpen={!!billTransaction}
+                onClose={() => setBillTransaction(null)}
+                data={billTransaction}
+                type="transaction"
+            />
         </div>
     );
 }

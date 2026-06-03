@@ -102,40 +102,66 @@ export default function Customers() {
                 </div>
             </div>
 
-            {/* Customer Cards */}
+            {/* Customer List / Table */}
             {loading ? (
                 <div className="flex justify-center p-10"><Loader2 className="animate-spin text-royalBlue" size={40} /></div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {customers.map((c) => (
-                        <div key={c.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-all border-l-4 border-gold p-5">
-                            <div className="flex items-center space-x-3 mb-3">
-                                <div className="w-12 h-12 rounded-full bg-royalBlue flex items-center justify-center text-white font-bold text-lg">
-                                    {c.name.charAt(0)}
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-800 text-lg">{c.name}</h3>
-                                    <p className="text-sm text-gray-500 flex items-center gap-1"><Phone size={12} /> {c.mobile}</p>
-                                </div>
-                            </div>
-                            <p className="text-sm text-gray-500 flex items-center gap-1 mb-3"><MapPin size={14} /> {c.address || 'पत्ता उपलब्ध नाही'}</p>
-                            <div className="grid grid-cols-3 gap-2 text-center border-t pt-3">
-                                <div>
-                                    <p className="text-[10px] text-gray-400 uppercase font-black">व्यवहार</p>
-                                    <p className="font-bold text-green-600">₹{(c.totalBusiness || 0) / 1000}K</p>
-                                </div>
-                                <div className="col-span-2">
-                                    <button
-                                        onClick={() => setSelectedCustomer(c)}
-                                        className="w-full text-center text-xs border border-royalBlue text-royalBlue py-1.5 rounded hover:bg-royalBlue hover:text-white transition-colors flex items-center justify-center gap-1 font-bold"
-                                    >
-                                        <Eye size={14} /> तपशील
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                    {customers.length === 0 && <div className="col-span-3 text-center text-gray-500 p-10 font-bold">कोणतेही ग्राहक साखडले नाहीत.</div>}
+                <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-[#f8fafc] hidden md:table-header-group">
+                                <tr className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em]">
+                                    <th className="p-6 border-b">ग्राहक</th>
+                                    <th className="p-6 border-b">संपर्क</th>
+                                    <th className="p-6 border-b">पत्ता</th>
+                                    <th className="p-6 border-b text-right">एकूण व्यवहार</th>
+                                    <th className="p-6 border-b text-center">कृती</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50 flex flex-col md:table-row-group p-4 md:p-0">
+                                {customers.map((c) => (
+                                    <tr key={c.id} className="hover:bg-gold/5 transition-colors group flex flex-col md:table-row bg-white md:bg-transparent rounded-xl md:rounded-none mb-4 md:mb-0 shadow-sm md:shadow-none border border-gray-100 md:border-none p-4 md:p-0 relative">
+                                        <td className="p-2 md:p-6 mb-2 md:mb-0 border-b md:border-none flex justify-between md:table-cell items-center">
+                                            <div className="flex items-center space-x-3 w-full">
+                                                <div>
+                                                    <h3 className="font-black text-gray-800 text-lg md:text-base leading-tight md:leading-normal">{c.name}</h3>
+                                                    <p className="text-[10px] text-gray-400 font-bold hidden md:block">ID: #{c.id}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="p-2 md:p-6 mb-2 md:mb-0 flex items-center gap-2 md:table-cell">
+                                            <Phone size={14} className="text-gray-400 md:hidden" />
+                                            <div>
+                                                <p className="font-bold text-gray-700">{c.mobile}</p>
+                                                {c.email && <p className="text-[10px] text-gray-400">{c.email}</p>}
+                                            </div>
+                                        </td>
+                                        <td className="p-2 md:p-6 mb-2 md:mb-0 flex items-start gap-2 md:table-cell bg-gray-50/50 md:bg-transparent rounded-lg md:rounded-none mt-2 md:mt-0">
+                                            <MapPin size={14} className="text-gray-400 md:hidden mt-1" />
+                                            <div className="flex-1">
+                                                <p className="text-sm font-bold text-gray-600 truncate max-w-[200px] md:max-w-xs">{c.address || 'पत्ता उपलब्ध नाही'}</p>
+                                                {c.aadhaar && <p className="text-[10px] font-mono text-gray-400 uppercase mt-0.5">UID: {c.aadhaar}</p>}
+                                            </div>
+                                        </td>
+                                        <td className="p-2 md:p-6 mb-4 md:mb-0 flex justify-between md:table-cell items-center border-t md:border-none md:text-right pt-4 md:pt-6 mt-2 md:mt-0">
+                                            <span className="md:hidden text-[10px] font-black text-gray-400 uppercase">एकूण व्यवहार:</span>
+                                            <p className="font-black text-lg text-green-600">₹{(c.totalBusiness || 0).toLocaleString('en-IN')}</p>
+                                        </td>
+                                        <td className="p-2 md:p-6 text-center bg-gray-50 md:bg-transparent rounded-xl md:rounded-none flex justify-center md:table-cell absolute md:relative right-4 top-4 md:right-auto md:top-auto w-max md:w-auto">
+                                            <button
+                                                onClick={() => setSelectedCustomer(c)}
+                                                className="bg-white md:bg-royalBlue text-royalBlue md:text-white border border-gray-200 md:border-transparent p-2 md:px-4 md:py-2 md:rounded-xl rounded-full shadow-sm md:shadow-md hover:bg-gray-50 md:hover:bg-blue-800 transition-all active:scale-95 flex items-center gap-2"
+                                            >
+                                                <Eye size={18} className="md:w-4 md:h-4" />
+                                                <span className="hidden md:inline font-bold text-xs">प्रोफाईल पाहणे</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {customers.length === 0 && <div className="text-center text-gray-400 p-16 font-bold flex flex-col items-center"><User size={48} className="mb-4 opacity-50" />कोणतेही ग्राहक सापडले नाहीत.</div>}
+                    </div>
                 </div>
             )}
 
@@ -146,9 +172,6 @@ export default function Customers() {
                         <div className="bg-gradient-to-r from-royalBlue to-blue-800 p-6 text-white relative">
                             <button onClick={() => setSelectedCustomer(null)} className="absolute top-4 right-4 text-blue-200 hover:text-white bg-white/10 p-1 rounded-full"><X size={20} /></button>
                             <div className="flex items-center space-x-4">
-                                <div className="w-16 h-16 rounded-full bg-gold flex items-center justify-center text-royalBlue font-black text-2xl shadow-lg border-2 border-white/20">
-                                    {selectedCustomer.name.charAt(0)}
-                                </div>
                                 <div>
                                     <h2 className="text-2xl font-bold">{selectedCustomer.name}</h2>
                                     <p className="text-blue-200 text-sm flex items-center gap-1"><Phone size={14} /> {selectedCustomer.mobile}</p>

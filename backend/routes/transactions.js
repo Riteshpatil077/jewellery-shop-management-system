@@ -64,11 +64,15 @@ router.get('/', async (req, res) => {
             whereClause.type = type; // "Sell", "Purchase", or "Order"
         }
 
-        const transactions = await prisma.transaction.findMany({
+        let transactions = await prisma.transaction.findMany({
             where: whereClause,
             orderBy: { date: 'desc' },
             include: { customer: true }
         });
+
+        // Push 'Completed' status downwards in the list
+        transactions.sort((a, b) => (a.status === 'Completed' ? 1 : 0) - (b.status === 'Completed' ? 1 : 0));
+
         res.json(transactions);
     } catch (err) {
         res.status(500).json({ error: err.message });

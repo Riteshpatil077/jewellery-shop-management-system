@@ -1,4 +1,4 @@
-const API_BASE_URL = `http://${window.location.hostname}:5000/api`;
+const API_BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:5000/api`;
 
 export const apiService = {
     // Products
@@ -44,6 +44,16 @@ export const apiService = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ repaymentDate: date })
         }).then(res => res.json());
+    },
+    addLoanPayment: (id, data) => {
+        return fetch(`${API_BASE_URL}/loans/${id}/payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data) // { amount, paymentType: 'interest' | 'principal' }
+        }).then(async res => {
+            if (!res.ok) throw new Error((await res.json()).error);
+            return res.json();
+        });
     },
 
     // Collections
