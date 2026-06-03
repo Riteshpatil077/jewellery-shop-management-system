@@ -43,13 +43,16 @@ export default function Loans() {
             };
             reader.readAsDataURL(file);
         }
-    }; const fetchLoans = async () => {
+    };
+
+    const fetchLoans = async () => {
         try {
             setLoading(true);
             const data = await apiService.getLoans({ search: searchTerm });
-            setLoans(data);
+            setLoans(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error(err);
+            setLoans([]);
         } finally {
             setLoading(false);
         }

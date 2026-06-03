@@ -46,9 +46,10 @@ export default function Transactions() {
         try {
             setLoading(true);
             const data = await apiService.getTransactions({ search: searchTerm, type: filterType });
-            setTransactions(data);
+            setTransactions(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error(err);
+            setTransactions([]);
         } finally {
             setLoading(false);
         }
