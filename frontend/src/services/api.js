@@ -82,6 +82,13 @@ export const apiService = {
             body: JSON.stringify({ nextDueDate: date })
         }).then(res => res.json());
     },
+    payCollection: (id, amount) => {
+        return fetch(`${API_BASE_URL}/collections/${id}/pay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: amount || 0 })
+        }).then(res => res.json());
+    },
 
     // Customers
     getCustomers: (params = {}) => {
@@ -99,6 +106,9 @@ export const apiService = {
     // Reports
     getReports: () => {
         return fetch(`${API_BASE_URL}/reports/summary`).then(res => res.json());
+    },
+    getBackupUrl: () => {
+        return `${API_BASE_URL}/backup`;
     },
 
     // Dashboard

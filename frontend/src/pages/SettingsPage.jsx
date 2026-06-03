@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Save, Shield, Bell, Palette, Database, User, CheckCircle } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { apiService } from '../services/api';
 
 
 const NOTIFICATION_OPTIONS = [
@@ -83,7 +84,7 @@ export default function SettingsPage() {
         const dateStr = new Date().toLocaleString('mr-IN');
         setLastBackup(dateStr);
         localStorage.setItem('lastBackup', dateStr);
-        window.open(`${window.location.protocol}//${window.location.hostname}:5000/api/backup`, '_blank');
+        window.open(apiService.getBackupUrl(), '_blank');
     };
 
     const inputClass = "w-full border-2 border-gray-200 rounded-xl p-3 focus:border-royalBlue outline-none transition-all text-sm font-medium text-gray-800 bg-gray-50 focus:bg-white";

@@ -76,11 +76,7 @@ export default function Collections() {
 
     const handlePay = async (id, amount) => {
         try {
-            await fetch(`http://localhost:5000/api/collections/${id}/pay`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: amount || 0 })
-            });
+            await apiService.payCollection(id, amount);
             setPaymentAmounts(prev => ({ ...prev, [id]: '' })); // Reset input
             fetchCollections();
         } catch (err) {
