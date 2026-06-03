@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:5000/api`;
+const API_BASE_URL = import.meta.env.VITE_API_URL ||
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? `http://${window.location.hostname}:5000/api`
+        : 'https://jewellery-shop-management-system.onrender.com/api');
 
 export const apiService = {
     // Products
