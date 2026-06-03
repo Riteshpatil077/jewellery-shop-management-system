@@ -365,8 +365,7 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await fetch(`${window.location.protocol}//${window.location.hostname}:5000/api/dashboard`);
-                const data = await response.json();
+                const data = await apiService.getDashboardStats();
                 setStats(data);
             } catch (err) {
                 console.error(err);

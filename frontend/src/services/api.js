@@ -102,7 +102,7 @@ export const apiService = {
     },
 
     // Dashboard
-    getStats: () => {
+    getDashboardStats: () => {
         return fetch(`${API_BASE_URL}/dashboard`).then(res => res.json());
     },
 
