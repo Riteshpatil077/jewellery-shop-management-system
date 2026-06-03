@@ -39,7 +39,7 @@ export default function Reports() {
 
     if (loading) return <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin text-royalBlue" size={50} /></div>;
 
-    if (!data || data.error || !data.monthlySales) {
+    if (!data || data.error || !Array.isArray(data.monthlySales)) {
         return (
             <div className="h-full flex flex-col items-center justify-center space-y-4 p-8 text-center text-red-500 font-bold">
                 <p>माहिती लोड करण्यात त्रुटी आली. कृपया इंटरनेट तपासा आणि रीफ्रेश करा.</p>
