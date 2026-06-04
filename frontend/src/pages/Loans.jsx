@@ -162,6 +162,17 @@ export default function Loans() {
             toast('तारीख बदलताना त्रुटी आली.', 'error');
         }
     };
+
+    const totalPendingInterest = loans.reduce((total, l) => {
+        if (l.status === 'Closed') return total;
+        let expectedTotInt = l.totalInterest || 0;
+        if (expectedTotInt === 0 && l.interestRate > 0) {
+            expectedTotInt = ((l.loanAmount * l.interestRate) / 100) * (l.durationMonths || 12);
+        }
+        const dueInt = Math.max(0, expectedTotInt - (l.interestPaid || 0));
+        return total + dueInt;
+    }, 0);
+
     return (
         <div className="p-4 md:p-6 space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -257,7 +268,7 @@ export default function Loans() {
                 <div className="bg-gradient-to-br from-red-500 to-red-700 p-5 rounded-xl shadow-lg text-white flex items-center justify-between">
                     <div>
                         <h3 className="text-white/80 text-xs font-bold uppercase tracking-wider">थकित व्याज</h3>
-                        <p className="text-2xl font-black">₹ १२,५००</p>
+                        <p className="text-2xl font-black">₹ {totalPendingInterest.toLocaleString('en-IN')}</p>
                     </div>
                     <IndianRupee className="text-white/20" size={40} />
                 </div>
