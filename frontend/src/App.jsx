@@ -240,8 +240,14 @@ const TopBar = ({ toggleSidebar }) => {
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-2.5 py-1.5 shadow-sm">
                         <div className="flex flex-col items-end">
-                            <span className="text-[8px] font-black text-amber-600 uppercase tracking-tighter">Gold</span>
+                            <span className="text-[8px] font-black text-amber-600 uppercase tracking-tighter">सोने प्रतिग्राम</span>
                             <span className="text-[11px] font-black text-gray-800">₹{goldRate}</span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-2.5 py-1.5 shadow-sm">
+                        <div className="flex flex-col items-end">
+                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">चांदी प्रतिग्राम</span>
+                            <span className="text-[11px] font-black text-gray-800">₹{silverRate}</span>
                         </div>
                     </div>
                     <button className="relative p-2 text-gray-400 active:scale-90">
@@ -323,6 +329,19 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [selectedRange, setSelectedRange] = useState(15);
     const [selectedMonth, setSelectedMonth] = useState('');
+    const [goldRateInput, setGoldRateInput] = useState(localStorage.getItem('goldRate') || '7,200');
+    const [silverRateInput, setSilverRateInput] = useState(localStorage.getItem('silverRate') || '92');
+    const [isSavingRates, setIsSavingRates] = useState(false);
+
+    const handleSaveRates = () => {
+        setIsSavingRates(true);
+        localStorage.setItem('goldRate', goldRateInput);
+        localStorage.setItem('silverRate', silverRateInput);
+        window.dispatchEvent(new Event('storage')); // Notify other components
+        setTimeout(() => {
+            setIsSavingRates(false);
+        }, 800);
+    };
 
     const getGreeting = () => {
         const h = new Date().getHours();
@@ -401,34 +420,60 @@ const Dashboard = () => {
             {/* ── Hero Header ── */}
             <div className="rounded-2xl md:rounded-3xl bg-gradient-to-br from-[#0a1128] via-[#12308a] to-[#1E3A8A] text-white p-5 md:p-8 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gold/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
-                <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-                    <div>
+                <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+                    <div className="flex-1">
                         <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-blue-200">🏆 व्यवसाय डॅशबोर्ड</p>
                         <h2 className="text-2xl md:text-4xl font-black tracking-tight mt-1 md:mt-2 leading-tight">
                             {getGreeting()}, <br className="md:hidden" />
                             <span className="text-gold">{localStorage.getItem('ownerName') || 'अॅडमिन'}</span>
                         </h2>
-                        <p className="text-xs md:text-sm text-blue-100/80 font-bold mt-1.5">
+                        <p className="text-xs md:text-sm text-blue-100/80 font-bold mt-1.5 line-clamp-1">
                             {new Date().toLocaleDateString('mr-IN', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
                         </p>
-                        <div className="flex flex-wrap gap-2 md:gap-3 mt-4">
-                            <div className="bg-white/10 border border-white/15 rounded-xl px-3 md:px-4 py-1.5 md:py-2 text-center flex-1 md:flex-none min-w-[120px]">
+
+                        {/* Highlights Row */}
+                        <div className="flex flex-wrap gap-2 md:gap-3 mt-5">
+                            <div className="bg-white/10 border border-white/15 rounded-xl px-3 md:px-4 py-1.5 md:py-2 text-center flex-1 md:flex-none min-w-[110px]">
                                 <p className="text-[8px] md:text-[9px] text-blue-200 font-black uppercase tracking-widest whitespace-nowrap">महिन्याची विक्री</p>
-                                <p className="text-lg md:text-xl font-black text-gold">₹{kpis.monthTotalSales.toLocaleString('en-IN')}</p>
+                                <p className="text-base md:text-xl font-black text-gold">₹{kpis.monthTotalSales.toLocaleString('en-IN')}</p>
                             </div>
-                            <div className={`rounded-xl px-3 md:px-4 py-1.5 md:py-2 text-center flex-1 md:flex-none min-w-[120px] ${monthChange >= 0 ? 'bg-emerald-500/20 border border-emerald-400/30' : 'bg-red-500/20 border border-red-400/30'}`}>
-                                <p className="text-[8px] md:text-[9px] text-blue-200 font-black uppercase tracking-widest whitespace-nowrap">मागील महिन्यापेक्षा</p>
-                                <p className={`text-lg md:text-xl font-black flex items-center justify-center gap-1 ${monthChange >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
-                                    {monthChange >= 0 ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                            <div className={`rounded-xl px-3 md:px-4 py-1.5 md:py-2 text-center flex-1 md:flex-none min-w-[110px] ${monthChange >= 0 ? 'bg-emerald-500/20 border border-emerald-400/30' : 'bg-red-500/20 border border-red-400/30'}`}>
+                                <p className="text-[8px] md:text-[9px] text-blue-200 font-black uppercase tracking-widest whitespace-nowrap">तुलना</p>
+                                <p className={`text-base md:text-xl font-black flex items-center justify-center gap-1 ${monthChange >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                                    {monthChange >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                                     {monthChange > 0 ? `+${monthChange}%` : `${monthChange}%`}
                                 </p>
                             </div>
                         </div>
                     </div>
-                    <div className="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0 scroll-hide">
-                        <button onClick={() => setSelectedRange(15)} className={`whitespace-nowrap px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all shrink-0 ${selectedRange === 15 ? 'bg-gold text-royalBlue shadow-lg shadow-gold/30' : 'bg-white/10 text-white border border-white/15'}`}>15 दिवस</button>
-                        <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-[10px] md:text-xs font-black outline-none text-white shrink-0" />
-                        <button onClick={() => setSelectedMonth(previousMonthLabel)} className="whitespace-nowrap px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest bg-white/10 text-white border border-white/15 shrink-0">मागील</button>
+
+                    {/* Rates & Filters Column */}
+                    <div className="flex flex-col gap-4 lg:items-end shrink-0">
+                        {/* Daily Rates Update Card */}
+                        <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-3 md:p-4 w-full lg:w-72 shadow-xl shadow-black/20">
+                            <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-gold flex items-center gap-1.5">⚡ आजचे भाव अपडेट</span>
+                                {isSavingRates && <span className="text-[8px] font-bold text-emerald-300 animate-pulse uppercase">जतन केले...</span>}
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div className="space-y-1">
+                                    <label className="block text-[8px] uppercase font-black text-blue-200 tracking-tighter">सोने (22K) प्रतिग्राम</label>
+                                    <input type="text" value={goldRateInput} onChange={(e) => setGoldRateInput(e.target.value)} className="w-full bg-white/10 border border-white/20 rounded-lg px-2 py-1.5 text-xs font-black text-white outline-none focus:border-gold/50 transition-colors" placeholder="15,500" />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="block text-[8px] uppercase font-black text-blue-200 tracking-tighter">चांदी प्रतिग्राम</label>
+                                    <input type="text" value={silverRateInput} onChange={(e) => setSilverRateInput(e.target.value)} className="w-full bg-white/10 border border-white/20 rounded-lg px-2 py-1.5 text-xs font-black text-white outline-none focus:border-gold/50 transition-colors" placeholder="250" />
+                                </div>
+                            </div>
+                            <button onClick={handleSaveRates} className="w-full bg-gold hover:bg-gold/90 text-[#0a1128] py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95">भाव अपडेट करा</button>
+                        </div>
+
+                        {/* Chart Filters */}
+                        <div className="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0 scroll-hide">
+                            <button onClick={() => setSelectedRange(15)} className={`whitespace-nowrap px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all shrink-0 ${selectedRange === 15 ? 'bg-gold text-royalBlue shadow-lg shadow-gold/30' : 'bg-white/10 text-white border border-white/15'}`}>15 दिवस</button>
+                            <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-[10px] md:text-xs font-black outline-none text-white shrink-0" />
+                            <button onClick={() => setSelectedMonth(previousMonthLabel)} className="whitespace-nowrap px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest bg-white/10 text-white border border-white/15 shrink-0">मागील</button>
+                        </div>
                     </div>
                 </div>
             </div>
