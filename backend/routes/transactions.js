@@ -103,33 +103,55 @@ router.post('/', async (req, res) => {
         // Final balance after considering exchange and advance
         const balance = Math.max(0, actTotal - actExchangeValue - actAdvance);
 
-        const transaction = await prisma.transaction.create({
-            data: {
-                type,
-                customerName: customerName || supplierName || 'अज्ञात',
-                supplierName: type === 'Purchase' ? (supplierName || customerName) : null,
-                mobile,
-                itemName,
-                metalType,
-                weight: parseFloat(weight || 0),
-                rate: parseFloat(rate || 0),
-                makingCharges: actMaking,
-                totalAmount: actTotal,
-                advancePaid: actAdvance,
-                balanceAmount: balance,
-                notes,
-                dueDate: dueDate ? new Date(dueDate) : null,
-                status: balance <= 0 ? 'Completed' : 'Pending',
-                exchangeItemName,
-                exchangeWeight: exchangeWeight ? parseFloat(exchangeWeight) : null,
-                exchangePurity: exchangePurity ? parseFloat(exchangePurity) : null,
-                exchangeFineWeight: exchangeFineWeight ? parseFloat(exchangeFineWeight) : null,
-                exchangeRate: exchangeRate ? parseFloat(exchangeRate) : null,
-                exchangeValue: actExchangeValue,
-                purchaseRate: purchaseRate ? parseFloat(purchaseRate) : null,
-                productId: productId ? parseInt(productId) : null
+        const transaction = await prisma.$transaction(async (tx) => {
+            // 1. Create the transaction record
+            const newTransaction = await tx.transaction.create({
+                data: {
+                    type,
+                    customerName: customerName || supplierName || 'अज्ञात',
+                    supplierName: type === 'Purchase' ? (supplierName || customerName) : null,
+                    mobile,
+                    itemName,
+                    metalType,
+                    weight: parseFloat(weight || 0),
+                    rate: parseFloat(rate || 0),
+                    makingCharges: actMaking,
+                    totalAmount: actTotal,
+                    advancePaid: actAdvance,
+                    balanceAmount: balance,
+                    notes,
+                    dueDate: dueDate ? new Date(dueDate) : null,
+                    status: balance <= 0 ? 'Completed' : 'Pending',
+                    exchangeItemName,
+                    exchangeWeight: exchangeWeight ? parseFloat(exchangeWeight) : null,
+                    exchangePurity: exchangePurity ? parseFloat(exchangePurity) : null,
+                    exchangeFineWeight: exchangeFineWeight ? parseFloat(exchangeFineWeight) : null,
+                    exchangeRate: exchangeRate ? parseFloat(exchangeRate) : null,
+                    exchangeValue: actExchangeValue,
+                    purchaseRate: purchaseRate ? parseFloat(purchaseRate) : null,
+                    productId: productId ? parseInt(productId) : null
+                }
+            });
+
+            // 2. Adjust Stock if productId is present
+            if (productId) {
+                const pid = parseInt(productId);
+                if (type === 'Sell') {
+                    await tx.product.update({
+                        where: { id: pid },
+                        data: { stockCount: { decrement: 1 } }
+                    });
+                } else if (type === 'Purchase') {
+                    await tx.product.update({
+                        where: { id: pid },
+                        data: { stockCount: { increment: 1 } }
+                    });
+                }
             }
+
+            return newTransaction;
         });
+
         res.status(201).json(transaction);
     } catch (err) {
         res.status(400).json({ error: err.message });
