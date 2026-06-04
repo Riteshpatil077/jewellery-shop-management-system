@@ -122,8 +122,9 @@ export const apiService = {
     },
 
     // Dashboard
-    getDashboardStats: () => {
-        return fetch(`${API_BASE_URL}/dashboard`).then(res => res.json());
+    getDashboardStats: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return fetch(`${API_BASE_URL}/dashboard${query ? `?${query}` : ''}`).then(res => res.json());
     },
 
     // Transactions
