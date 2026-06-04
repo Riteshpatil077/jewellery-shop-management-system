@@ -17,16 +17,18 @@ async function seed() {
             }
         });
 
-        /* Previous seed data commented out
-        console.log("Seeding products...");
+        console.log("💍 Seeding Professional Jewelry Products...");
         await prisma.product.createMany({
             data: [
-                { name: 'सोन्याची अंगठी', category: 'अंगठी (Rings)', weight: 5, metalType: 'Gold', ratePerGram: 6500, totalPrice: 32500, stockCount: 10 },
-                { name: 'डायमंड हार', category: 'हार (Necklaces)', weight: 20, metalType: 'Diamond', ratePerGram: 8000, totalPrice: 160000, stockCount: 2 },
+                { name: 'मंगळसूत्र (२२ कॅरेट)', category: 'मंगळसूत्र (Mangalsutra)', weight: 15.5, metalType: 'Gold', ratePerGram: 7200, totalPrice: 111600, stockCount: 5 },
+                { name: 'सोन्याचा नेकलेस', category: 'हार व नेकलेस (Necklaces)', weight: 25.2, metalType: 'Gold', ratePerGram: 7200, totalPrice: 181440, stockCount: 3 },
+                { name: 'डिझायनर अंगठी', category: 'अंगठी (Rings)', weight: 4.8, metalType: 'Gold', ratePerGram: 7200, totalPrice: 34560, stockCount: 12 },
+                { name: 'साखळी चैन', category: 'साखळी व चैन (Chains)', weight: 10.0, metalType: 'Gold', ratePerGram: 7200, totalPrice: 72000, stockCount: 8 },
+                { name: 'चांदीचे पैंजण', category: 'पैंजण व जोडवी (Payal)', weight: 50.0, metalType: 'Silver', ratePerGram: 95, totalPrice: 4750, stockCount: 20 },
             ]
         });
 
-        console.log("Seeding loans & collections...");
+        console.log("📋 Seeding active Loans & Collections...");
         await prisma.loan.create({
             data: {
                 customerName: 'रमेश पाटील',
@@ -36,11 +38,11 @@ async function seed() {
                 interestRate: 2,
                 durationMonths: 12,
                 repaymentDate: new Date('2026-12-31'),
+                status: 'Active'
             }
         });
-        */
 
-        console.log("✅ Seeding completed! Admin data added.");
+        console.log("✅ Seeding completed! Database is now professional and updated.");
     } catch (err) {
         console.error("❌ Seeding failed:", err);
     } finally {
