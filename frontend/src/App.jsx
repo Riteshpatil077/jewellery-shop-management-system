@@ -469,10 +469,22 @@ const Dashboard = () => {
                         </div>
 
                         {/* Chart Filters */}
-                        <div className="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0 scroll-hide">
-                            <button onClick={() => setSelectedRange(15)} className={`whitespace-nowrap px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all shrink-0 ${selectedRange === 15 ? 'bg-gold text-royalBlue shadow-lg shadow-gold/30' : 'bg-white/10 text-white border border-white/15'}`}>15 दिवस</button>
-                            <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-[10px] md:text-xs font-black outline-none text-white shrink-0" />
-                            <button onClick={() => setSelectedMonth(previousMonthLabel)} className="whitespace-nowrap px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest bg-white/10 text-white border border-white/15 shrink-0">मागील</button>
+                        <div className="flex flex-wrap gap-2 items-center justify-end">
+                            <div className="flex gap-1 bg-white/5 p-1 rounded-xl border border-white/10 shrink-0">
+                                {[7, 15, 30, 60].map(r => (
+                                    <button
+                                        key={r}
+                                        onClick={() => setSelectedRange(r)}
+                                        className={`px-2 md:px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${selectedRange === r ? 'bg-gold text-[#0a1128] shadow-lg shadow-gold/20' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                                    >
+                                        {r} दिवस
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex gap-2">
+                                <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-[10px] md:text-xs font-black outline-none text-white shrink-0" />
+                                <button onClick={() => setSelectedMonth(previousMonthLabel)} className="whitespace-nowrap px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest bg-white/10 text-white border border-white/15 shrink-0 hover:bg-white/20 transition-all">मागील</button>
+                            </div>
                         </div>
                     </div>
                 </div>
