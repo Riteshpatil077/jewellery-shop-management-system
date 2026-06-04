@@ -18,10 +18,10 @@ export default function SettingsPage() {
     const [saved, setSaved] = useState(false);
 
     // Shop info
-    const [shopName, setShopName] = useState(() => ls('shopName'));
-    const [ownerName, setOwnerName] = useState(() => ls('ownerName'));
-    const [address, setAddress] = useState(() => ls('address'));
-    const [mobile, setMobile] = useState(() => ls('mobile'));
+    const [shopName, setShopName] = useState(() => ls('shopName', 'श्री कृष्णा ज्वेलर्स'));
+    const [ownerName, setOwnerName] = useState(() => ls('ownerName', 'रमेश पाटील'));
+    const [address, setAddress] = useState(() => ls('address', 'Rajapur, sangli'));
+    const [mobile, setMobile] = useState(() => ls('mobile', '9834253022'));
 
     // Rates
     const [goldRate, setGoldRate] = useState(() => ls('goldRate'));

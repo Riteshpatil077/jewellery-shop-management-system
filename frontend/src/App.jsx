@@ -425,7 +425,7 @@ const Dashboard = () => {
                         <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-blue-200">🏆 व्यवसाय डॅशबोर्ड</p>
                         <h2 className="text-2xl md:text-4xl font-black tracking-tight mt-1 md:mt-2 leading-tight">
                             {getGreeting()}, <br className="md:hidden" />
-                            <span className="text-gold">{localStorage.getItem('ownerName') || 'अॅडमिन'}</span>
+                            <span className="text-gold">{localStorage.getItem('ownerName') || 'रमेश पाटील'}</span>
                         </h2>
                         <p className="text-xs md:text-sm text-blue-100/80 font-bold mt-1.5 line-clamp-1">
                             {new Date().toLocaleDateString('mr-IN', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
