@@ -48,7 +48,8 @@ app.get('/api/dashboard', async (req, res) => {
             loanSummary,
             collectionSummary,
             transactions,
-            allProducts
+            allProducts,
+            customers
         ] = await Promise.all([
             // Inventory KPIs
             prisma.product.aggregate({
@@ -84,6 +85,11 @@ app.get('/api/dashboard', async (req, res) => {
             prisma.product.findMany({
                 where: { stockCount: { lte: 5 } },
                 select: { id: true, name: true, stockCount: true }
+            }),
+            // Customers list for performance metrics
+            prisma.customer.findMany({
+                orderBy: { totalBusiness: 'desc' },
+                take: 5
             })
         ]);
 
