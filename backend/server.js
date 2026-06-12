@@ -41,41 +41,61 @@ app.get('/api/dashboard', async (req, res) => {
         rangeStart.setDate(rangeStart.getDate() - (rangeDays - 1));
         rangeStart.setHours(0, 0, 0, 0);
 
-        const [products, customers, loans, collections, transactions] = await Promise.all([
-            prisma.product.findMany({
-                select: { id: true, name: true, category: true, stockCount: true, totalPrice: true, isAvailable: true, createdAt: true },
-                orderBy: { totalPrice: 'desc' }
+        const [
+            inventoryStats,
+            totalCustomers,
+            newCustomers,
+            loanSummary,
+            collectionSummary,
+            transactions,
+            allProducts
+        ] = await Promise.all([
+            // Inventory KPIs
+            prisma.product.aggregate({
+                _sum: { totalPrice: true },
+                _count: { id: true }
             }),
-            prisma.customer.findMany({
-                select: { id: true, name: true, totalBusiness: true, createdAt: true },
-                orderBy: { totalBusiness: 'desc' }
+            // Customer KPIs
+            prisma.customer.count(),
+            prisma.customer.count({
+                where: { createdAt: { gte: monthStart, lte: monthEnd } }
             }),
-            prisma.loan.findMany({
-                select: { id: true, loanAmount: true, interestPaid: true, status: true }
+            // Loan KPIs
+            prisma.loan.aggregate({
+                where: { status: 'Active' },
+                _count: { id: true },
             }),
-            prisma.collection.findMany({
-                select: { totalAmount: true, balanceAmount: true, status: true }
+            // Collection KPIs
+            prisma.collection.aggregate({
+                where: { status: { not: 'Completed' } },
+                _sum: { balanceAmount: true, totalAmount: true }
             }),
+            // Transactions for charts (limited range for performance)
             prisma.transaction.findMany({
                 where: { date: { gte: previousMonthStart } },
                 select: {
-                    id: true,
-                    type: true,
-                    customerName: true,
-                    supplierName: true,
-                    itemName: true,
-                    metalType: true,
-                    weight: true,
-                    rate: true,
-                    makingCharges: true,
-                    totalAmount: true,
-                    status: true,
-                    date: true,
-                    purchaseRate: true
+                    id: true, type: true, totalAmount: true, date: true,
+                    rate: true, purchaseRate: true, weight: true, makingCharges: true,
+                    customerName: true, supplierName: true, itemName: true
                 },
                 orderBy: { date: 'asc' }
+            }),
+            // Low stock products for alerts
+            prisma.product.findMany({
+                where: { stockCount: { lte: 5 } },
+                select: { id: true, name: true, stockCount: true }
             })
         ]);
+
+        const loanInterest = await prisma.loan.aggregate({
+            _sum: { interestPaid: true }
+        });
+
+        const topProducts = await prisma.product.findMany({
+            take: 4,
+            orderBy: { totalPrice: 'desc' },
+            select: { name: true, stockCount: true, totalPrice: true }
+        });
 
         const dateKey = (date) => new Date(date).toISOString().slice(0, 10);
         const rangeTransactions = transactions.filter((transaction) => transaction.date >= rangeStart);
@@ -164,18 +184,18 @@ app.get('/api/dashboard', async (req, res) => {
                     chart: salesAnalytics.slice(-7).map((entry) => Math.round(entry.sales / 1000))
                 },
                 inventoryValue: {
-                    value: Math.round(products.reduce((sum, product) => sum + ((product.totalPrice || 0) * Math.max(product.stockCount || 1, 1)), 0)),
-                    count: products.length,
-                    lowStock: products.filter((product) => (product.stockCount || 0) <= 5).length
+                    value: Math.round(inventoryStats._sum.totalPrice || 0),
+                    count: inventoryStats._count.id,
+                    lowStock: allProducts.length
                 },
                 profitMargin: {
                     value: Math.round((grossProfit / Math.max(monthTotalSales, 1)) * 1000) / 10,
                     target: 50
                 },
                 activeCustomers: {
-                    value: customers.length,
-                    newThisMonth: customers.filter((customer) => customer.createdAt >= monthStart && customer.createdAt <= monthEnd).length,
-                    returningRate: customers.length > 0 ? Math.round((monthTransactions.length / customers.length) * 10) : 0
+                    value: totalCustomers,
+                    newThisMonth: newCustomers,
+                    returningRate: totalCustomers > 0 ? Math.round((monthTransactions.length / totalCustomers) * 10) : 0
                 },
                 monthTotalSales: Math.round(monthTotalSales),
                 previousMonthTotalSales: Math.round(previousMonthTotalSales)
@@ -188,15 +208,13 @@ app.get('/api/dashboard', async (req, res) => {
                 amount
             })),
             inventoryStatus: [
-                { name: 'स्टॉकमध्ये', value: products.filter((product) => (product.stockCount || 0) > 5).length, fill: '#059669' },
-                { name: 'कमी स्टॉक', value: products.filter((product) => (product.stockCount || 0) <= 5).length, fill: '#FFD700' },
-                { name: 'उपलब्ध', value: products.filter((product) => product.isAvailable).length, fill: '#1E3A8A' },
-                { name: 'निष्क्रिय', value: products.filter((product) => !product.isAvailable).length, fill: '#DC2626' }
+                { name: 'कमी स्टॉक', value: allProducts.length, fill: '#FFD700' },
+                { name: 'एकूण उत्पादने', value: inventoryStats._count.id, fill: '#1E3A8A' }
             ],
-            topProducts: products.slice(0, 4).map((product) => ({
+            topProducts: topProducts.map((product) => ({
                 name: product.name,
                 units: Math.max(product.stockCount || 0, 1),
-                revenue: Math.round((product.totalPrice || 0) * Math.max(product.stockCount || 1, 1))
+                revenue: Math.round(product.totalPrice || 0)
             })),
             purchaseVsSales: Array.from({ length: previousMonthEnd.getDate() }, (_, index) => {
                 const current = new Date(previousMonthStart);
@@ -224,12 +242,12 @@ app.get('/api/dashboard', async (req, res) => {
             })),
             recentTransactions: transactions.slice(-20).reverse(),
             loanStats: {
-                activeCount: loans.filter((loan) => loan.status === 'Active').length,
-                interestEarned: loans.reduce((sum, loan) => sum + (loan.interestPaid || 0), 0)
+                activeCount: loanSummary._count.id,
+                interestEarned: loanInterest._sum.interestPaid || 0
             },
             collectionStats: {
-                pending: collections.filter((collection) => collection.status !== 'Completed').reduce((sum, collection) => sum + (collection.balanceAmount || 0), 0),
-                collected: collections.reduce((sum, collection) => sum + ((collection.totalAmount || 0) - (collection.balanceAmount || 0)), 0)
+                pending: Number(collectionSummary._sum.balanceAmount || 0),
+                collected: Number((collectionSummary._sum.totalAmount || 0) - (collectionSummary._sum.balanceAmount || 0))
             }
         });
     } catch (err) {

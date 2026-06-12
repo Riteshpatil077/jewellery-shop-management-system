@@ -54,4 +54,19 @@ export default defineConfig({
             '@': path.resolve(__dirname, './src'),
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor-recharts': ['recharts'],
+                    'vendor-lucide': ['lucide-react'],
+                },
+            },
+        },
+        chunkSizeWarningLimit: 1000,
+        cssCodeSplit: true,
+    },
+    esbuild: {
+        drop: ['console', 'debugger'],
+    },
 })
