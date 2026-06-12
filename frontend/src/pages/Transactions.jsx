@@ -11,6 +11,7 @@ export default function Transactions() {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [filterType, setFilterType] = useState(''); // 'Sell', 'Purchase', 'Order'
     const [paymentAmounts, setPaymentAmounts] = useState({});
     const [profitData, setProfitData] = useState(null);
@@ -42,10 +43,10 @@ export default function Transactions() {
         productId: null
     });
 
-    const fetchTransactions = async () => {
+    const fetchTransactions = async (searchVal = debouncedSearchTerm, typeVal = filterType) => {
         try {
             setLoading(true);
-            const data = await apiService.getTransactions({ search: searchTerm, type: filterType });
+            const data = await apiService.getTransactions({ search: searchVal, type: typeVal });
             setTransactions(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error(err);
@@ -73,11 +74,24 @@ export default function Transactions() {
         }
     };
 
+    // Debounce search term changes
     useEffect(() => {
-        fetchTransactions();
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [searchTerm]);
+
+    // Fetch transactions when debounced search or filter changes
+    useEffect(() => {
+        fetchTransactions(debouncedSearchTerm, filterType);
+    }, [debouncedSearchTerm, filterType]);
+
+    // Fetch initial static products and profit data once
+    useEffect(() => {
         fetchProfitData();
         fetchProducts();
-    }, [searchTerm, filterType]);
+    }, []);
 
     useEffect(() => {
         const w = parseFloat(formData.weight) || 0;
@@ -153,6 +167,7 @@ export default function Transactions() {
             await apiService.addTransaction(formData);
             setShowAddForm(false);
             fetchTransactions();
+            fetchProfitData();
             toast('व्यवहार यशस्वीरित्या नोंदवला गेला!', 'success');
             setFormData({
                 type: 'Purchase', customerName: '', supplierName: '', mobile: '', itemName: '',
@@ -173,6 +188,7 @@ export default function Transactions() {
             await apiService.payTransaction(id, amount);
             setPaymentAmounts(prev => ({ ...prev, [id]: '' }));
             fetchTransactions();
+            fetchProfitData();
         } catch (err) {
             toast('पेमेंट अपडेट करताना त्रुटी आली.', 'error');
         }

@@ -10,6 +10,7 @@ export default function Loans() {
     const [loans, setLoans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [formData, setFormData] = useState({
         customerName: '',
         mobileNumber: '',
@@ -45,10 +46,10 @@ export default function Loans() {
         }
     };
 
-    const fetchLoans = async () => {
+    const fetchLoans = async (searchVal = debouncedSearchTerm) => {
         try {
             setLoading(true);
-            const data = await apiService.getLoans({ search: searchTerm });
+            const data = await apiService.getLoans({ search: searchVal });
             setLoans(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error(err);
@@ -59,8 +60,15 @@ export default function Loans() {
     };
 
     useEffect(() => {
-        fetchLoans();
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500);
+        return () => clearTimeout(handler);
     }, [searchTerm]);
+
+    useEffect(() => {
+        fetchLoans(debouncedSearchTerm);
+    }, [debouncedSearchTerm]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

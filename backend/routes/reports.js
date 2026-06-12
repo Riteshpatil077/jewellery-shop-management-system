@@ -5,16 +5,48 @@ const router = express.Router();
 
 router.get('/summary', async (req, res) => {
     try {
-        const transactions = await prisma.transaction.findMany({
-            orderBy: { date: 'desc' }
-        });
-
-        const loans = await prisma.loan.findMany();
-        const collections = await prisma.collection.findMany();
+        const [
+            allTransactionsForStats,
+            allLoansForStats,
+            allCollectionsForStats,
+            recentTransactions,
+            loansList
+        ] = await Promise.all([
+            prisma.transaction.findMany({
+                select: {
+                    date: true,
+                    type: true,
+                    totalAmount: true,
+                    purchaseRate: true,
+                    weight: true
+                }
+            }),
+            prisma.loan.findMany({
+                select: {
+                    loanAmount: true,
+                    interestPaid: true,
+                    status: true
+                }
+            }),
+            prisma.collection.findMany({
+                select: {
+                    balanceAmount: true,
+                    totalAmount: true
+                }
+            }),
+            prisma.transaction.findMany({
+                orderBy: { date: 'desc' },
+                take: 100
+            }),
+            prisma.loan.findMany({
+                orderBy: { createdAt: 'desc' },
+                take: 100
+            })
+        ]);
 
         // 1. Monthly Sales Report
         const monthlySalesMap = {};
-        transactions.forEach(t => {
+        allTransactionsForStats.forEach(t => {
             const d = new Date(t.date);
             const monthYear = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             if (!monthlySalesMap[monthYear]) monthlySalesMap[monthYear] = { count: 0, total: 0, profit: 0 };
@@ -41,13 +73,13 @@ router.get('/summary', async (req, res) => {
         })).sort((a, b) => b.month.localeCompare(a.month)); // descending
 
         // 2. Loan Report
-        const totalLoansGiven = loans.reduce((sum, l) => sum + l.loanAmount, 0);
-        const totalInterestCollected = loans.reduce((sum, l) => sum + l.interestPaid, 0);
-        const activeLoans = loans.filter(l => l.status === 'Active').length;
+        const totalLoansGiven = allLoansForStats.reduce((sum, l) => sum + l.loanAmount, 0);
+        const totalInterestCollected = allLoansForStats.reduce((sum, l) => sum + l.interestPaid, 0);
+        const activeLoans = allLoansForStats.filter(l => l.status === 'Active').length;
 
         // 3. Collection Report
-        const totalPendingCollections = collections.reduce((sum, c) => sum + c.balanceAmount, 0);
-        const totalCollectedAmount = collections.reduce((sum, c) => sum + (c.totalAmount - c.balanceAmount), 0);
+        const totalPendingCollections = allCollectionsForStats.reduce((sum, c) => sum + c.balanceAmount, 0);
+        const totalCollectedAmount = allCollectionsForStats.reduce((sum, c) => sum + (c.totalAmount - c.balanceAmount), 0);
 
         res.json({
             monthlySales,
@@ -60,8 +92,8 @@ router.get('/summary', async (req, res) => {
                 pending: totalPendingCollections,
                 collected: totalCollectedAmount
             },
-            recentTransactions: transactions.slice(0, 100),
-            loansList: loans.slice(0, 100),
+            recentTransactions,
+            loansList,
         });
     } catch (err) {
         res.status(500).json({ error: err.message });

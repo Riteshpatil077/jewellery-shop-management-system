@@ -6,7 +6,18 @@ const router = express.Router();
 // GET profit analysis
 router.get('/profit', async (req, res) => {
     try {
-        const transactions = await prisma.transaction.findMany();
+        const transactions = await prisma.transaction.findMany({
+            select: {
+                type: true,
+                totalAmount: true,
+                weight: true,
+                makingCharges: true,
+                exchangeValue: true,
+                purchaseRate: true,
+                rate: true,
+                advancePaid: true
+            }
+        });
 
         const summary = transactions.reduce((acc, t) => {
             if (t.type === 'Sell') {

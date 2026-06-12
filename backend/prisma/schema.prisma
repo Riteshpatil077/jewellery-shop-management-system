@@ -25,6 +25,10 @@ model Product {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   transactions   Transaction[]
+
+  @@index([isAvailable])
+  @@index([createdAt])
+  @@index([stockCount])
 }
 
 model Customer {
@@ -40,6 +44,9 @@ model Customer {
   transactions  Transaction[]
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+
+  @@index([createdAt])
+  @@index([totalBusiness])
 }
 
 model Loan {
@@ -65,6 +72,10 @@ model Loan {
   customer        Customer? @relation(fields: [customerId], references: [id])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([customerId])
 }
 
 model Collection {
@@ -83,6 +94,10 @@ model Collection {
   customer          Customer? @relation(fields: [customerId], references: [id])
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([customerId])
 }
 
 model Transaction {
@@ -116,4 +131,10 @@ model Transaction {
   customer        Customer? @relation(fields: [customerId], references: [id])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([date])
+  @@index([type])
+  @@index([status])
+  @@index([customerId])
+  @@index([productId])
 }

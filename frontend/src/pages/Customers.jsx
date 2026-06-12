@@ -10,6 +10,7 @@ export default function Customers() {
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [formData, setFormData] = useState({
         name: '',
         mobile: '',
@@ -18,10 +19,10 @@ export default function Customers() {
         email: ''
     });
 
-    const fetchCustomers = async () => {
+    const fetchCustomers = async (searchVal = debouncedSearchTerm) => {
         try {
             setLoading(true);
-            const data = await apiService.getCustomers({ search: searchTerm });
+            const data = await apiService.getCustomers({ search: searchVal });
             setCustomers(data);
         } catch (err) {
             console.error(err);
@@ -31,8 +32,15 @@ export default function Customers() {
     };
 
     useEffect(() => {
-        fetchCustomers();
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500);
+        return () => clearTimeout(handler);
     }, [searchTerm]);
+
+    useEffect(() => {
+        fetchCustomers(debouncedSearchTerm);
+    }, [debouncedSearchTerm]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

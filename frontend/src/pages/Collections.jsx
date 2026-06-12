@@ -11,6 +11,7 @@ export default function Collections() {
     const [paymentAmounts, setPaymentAmounts] = useState({});
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [formData, setFormData] = useState({
         customerName: '',
         purchasedJewelry: '',
@@ -20,10 +21,10 @@ export default function Collections() {
         nextDueDate: ''
     });
 
-    const fetchCollections = async () => {
+    const fetchCollections = async (searchVal = debouncedSearchTerm) => {
         try {
             setLoading(true);
-            const data = await apiService.getCollections({ search: searchTerm });
+            const data = await apiService.getCollections({ search: searchVal });
             setCollections(data);
         } catch (err) {
             console.error(err);
@@ -33,8 +34,15 @@ export default function Collections() {
     };
 
     useEffect(() => {
-        fetchCollections();
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500);
+        return () => clearTimeout(handler);
     }, [searchTerm]);
+
+    useEffect(() => {
+        fetchCollections(debouncedSearchTerm);
+    }, [debouncedSearchTerm]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
