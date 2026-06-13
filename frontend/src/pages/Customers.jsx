@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Phone, MapPin, User, Eye, Loader2, X, FileText, Calendar, IndianRupee } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useToast } from '../context/ToastContext';
@@ -8,9 +8,11 @@ export default function Customers() {
     const [showAddForm, setShowAddForm] = useState(false);
     const [customers, setCustomers] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);   // true only on very first load
+    const [fetching, setFetching] = useState(false); // true on every background refresh
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+    const abortRef = useRef(null);
     const [formData, setFormData] = useState({
         name: '',
         mobile: '',
@@ -20,13 +22,25 @@ export default function Customers() {
     });
 
     const fetchCustomers = async (searchVal = debouncedSearchTerm) => {
+        // Cancel any in-flight request
+        if (abortRef.current) abortRef.current.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
+
+        // Show subtle fetching indicator; full spinner only on initial empty state
+        setFetching(true);
         try {
-            setLoading(true);
-            const data = await apiService.getCustomers({ search: searchVal });
+            const query = new URLSearchParams(searchVal ? { search: searchVal } : {}).toString();
+            const res = await fetch(
+                `${import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? `http://${window.location.hostname}:5000` : 'https://jewellery-shop-management-system.onrender.com')}/api/customers${query ? `?${query}` : ''}`,
+                { signal: controller.signal }
+            );
+            const data = await res.json();
             setCustomers(data);
         } catch (err) {
-            console.error(err);
+            if (err.name !== 'AbortError') console.error(err);
         } finally {
+            setFetching(false);
             setLoading(false);
         }
     };
@@ -34,7 +48,7 @@ export default function Customers() {
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearchTerm(searchTerm);
-        }, 500);
+        }, 300); // reduced from 500ms → 300ms for snappier search
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
@@ -99,7 +113,9 @@ export default function Customers() {
             {/* Search */}
             <div className="bg-white p-4 rounded shadow-sm">
                 <div className="relative">
-                    <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />
+                    {fetching
+                        ? <Loader2 className="absolute left-3 top-2.5 text-royalBlue animate-spin" size={20} />
+                        : <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />}
                     <input
                         type="text"
                         value={searchTerm}
@@ -111,7 +127,7 @@ export default function Customers() {
             </div>
 
             {/* Customer List / Table */}
-            {loading ? (
+            {loading && customers.length === 0 ? (
                 <div className="flex justify-center p-10"><Loader2 className="animate-spin text-royalBlue" size={40} /></div>
             ) : (
                 <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">

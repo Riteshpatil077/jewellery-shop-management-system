@@ -6,11 +6,27 @@ const router = express.Router();
 router.get('/', async (req, res) => {
     try {
         const { search } = req.query;
+        // totalBusiness is already stored on the Customer model — no JOIN needed
         const customers = await prisma.customer.findMany({
             where: search ? { name: { contains: search, mode: 'insensitive' } } : {},
-            orderBy: { name: 'asc' }
+            orderBy: { name: 'asc' },
+            select: {
+                id: true,
+                name: true,
+                mobile: true,
+                address: true,
+                aadhaar: true,
+                email: true,
+                totalBusiness: true,
+                createdAt: true,
+                _count: { select: { transactions: true } }
+            }
         });
-        res.json(customers);
+        const result = customers.map(({ _count, ...c }) => ({
+            ...c,
+            transactionCount: _count.transactions
+        }));
+        res.json(result);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
